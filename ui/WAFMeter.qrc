@@ -1,1 +1,7 @@
-<RCC/>
+<RCC>
+    <qresource prefix="/icons" >
+        <file>camera-web.png</file>
+        <file>camera-photo.png</file>
+        <file>image-jpeg.png</file>
+    </qresource>
+</RCC>

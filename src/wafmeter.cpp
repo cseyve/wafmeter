@@ -162,11 +162,13 @@ The values are then converted to the destination data type:
   */
 
 
-	if(!hsvImage)
+	if(!hsvImage) {
 		hsvImage = tmCreateImage(
 			cvSize(m_scaledImage->width, m_scaledImage->height),
 			IPL_DEPTH_8U,
 			m_scaledImage->nChannels);
+	}
+
 	if(m_scaledImage->nChannels == 3) {
 		//cvCvtColor(m_scaledImage, hsvImage, CV_RGB2HSV);
 		cvCvtColor(m_scaledImage, hsvImage, CV_BGR2HSV);
@@ -176,7 +178,7 @@ The values are then converted to the destination data type:
 
 	if(!h_plane) h_plane = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
 	if(!s_plane) s_plane = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
-	if(!m_grayImage) {
+	if(!m_grayImage) { // vplane
 		m_grayImage = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
 	}
 
@@ -192,12 +194,11 @@ The values are then converted to the destination data type:
 	// save image for debug
 	if(g_debug_WAFMeter) {
 		tmSaveImage(TMP_DIRECTORY "HSVimage.ppm", hsvImage);
+		if(!m_HSHistoImage) {
+			m_HSHistoImage = tmCreateImage(cvSize(H_MAX, S_MAX), IPL_DEPTH_8U, 1);
+		} else
+			cvZero(m_HSHistoImage);
 	}
-	if(!m_HSHistoImage) {
-		m_HSHistoImage = tmCreateImage(cvSize(H_MAX, S_MAX), IPL_DEPTH_8U, 1);
-	} else
-		cvZero(m_HSHistoImage);
-
 	double color_factor = 0.;
 	int color_factor_nb = 0;
 
@@ -222,20 +223,21 @@ The values are then converted to the destination data type:
 				color_factor_nb++;
 			}
 
-			if(h<m_HSHistoImage->widthStep
-			   && s<m_HSHistoImage->height) {
-				// Increase image
-				u8 * pHisto = // H as columns, S as line
-					(u8 *)(m_HSHistoImage->imageData + s * m_HSHistoImage->widthStep)
-					+ h;
-				u8 val = *pHisto;
-				if(val < 255) {
-					*pHisto = val+1;
+			if(g_debug_WAFMeter) {
+				if(h<m_HSHistoImage->widthStep
+				   && s<m_HSHistoImage->height) {
+					// Increase image
+					u8 * pHisto = // H as columns, S as line
+							(u8 *)(m_HSHistoImage->imageData + s * m_HSHistoImage->widthStep)
+							+ h;
+					u8 val = *pHisto;
+					if(val < 255) {
+						*pHisto = val+1;
+					}
 				}
 			}
 		}
 	}
-
 	if(color_factor_nb > 0) {
 		m_waf_info.color_factor = color_factor / (double)color_factor_nb ;
 	}
@@ -243,41 +245,40 @@ The values are then converted to the destination data type:
 	// save image for debug
 	if(g_debug_WAFMeter) {
 		tmSaveImage(TMP_DIRECTORY "HSHisto.pgm", m_HSHistoImage);
-	}
 
-	IplImage * hsvOutImage = tmCreateImage(
-			cvSize(H_MAX, S_MAX),
-			IPL_DEPTH_8U,
-			3);
-	// Fill with H,S and use Value for highlighting colors
-	for(int r=0; r<hsvOutImage->height; r++) {
-		u8 * outline = (u8 *)(hsvOutImage->imageData
-										+ r * hsvOutImage->widthStep);
-		u8 * histoline = (u8 *)(m_HSHistoImage->imageData
-										+ r * m_HSHistoImage->widthStep);
-		int c1 = 0;
-		for(int c = 0; c1<H_MAX;
-			c1++, c+=hsvOutImage->nChannels) {
-			outline[c] = c1; // H
-			outline[c+1] = r; // S
-			outline[c+2] = 64 + (int)tmmin( (float)histoline[c1]*2.f, 191.f);
-					//histoline[c1]>1 ? 255 : 64; //histoline[c1];
+		IplImage * hsvOutImage = tmCreateImage(
+				cvSize(H_MAX, S_MAX),
+				IPL_DEPTH_8U,
+				3);
+		// Fill with H,S and use Value for highlighting colors
+		for(int r=0; r<hsvOutImage->height; r++) {
+			u8 * outline = (u8 *)(hsvOutImage->imageData
+								  + r * hsvOutImage->widthStep);
+			u8 * histoline = (u8 *)(m_HSHistoImage->imageData
+									+ r * m_HSHistoImage->widthStep);
+			int c1 = 0;
+			for(int c = 0; c1<H_MAX;
+				c1++, c+=hsvOutImage->nChannels) {
+				outline[c] = c1; // H
+				outline[c+1] = r; // S
+				outline[c+2] = 64 + (int)tmmin( (float)histoline[c1]*2.f, 191.f);
+				//histoline[c1]>1 ? 255 : 64; //histoline[c1];
+			}
 		}
-	}
-	if(!m_ColorHistoImage) {
-		m_ColorHistoImage = tmCreateImage(
-			cvSize(H_MAX, S_MAX),
-			IPL_DEPTH_8U,
-			3);
-	} else
-		cvZero(m_ColorHistoImage);
+		if(!m_ColorHistoImage) {
+			m_ColorHistoImage = tmCreateImage(
+					cvSize(H_MAX, S_MAX),
+					IPL_DEPTH_8U,
+					3);
+		} else
+			cvZero(m_ColorHistoImage);
 
-	cvCvtColor(hsvOutImage, m_ColorHistoImage, CV_HSV2BGR);
-	//tmSaveImage(TMP_DIRECTORY "HSHistoColored.ppm", m_ColorHistoImage);
-	if(g_debug_WAFMeter) {
-		tmSaveImage(TMP_DIRECTORY "HSHistoHSV.ppm", hsvOutImage);
+		cvCvtColor(hsvOutImage, m_ColorHistoImage, CV_HSV2BGR);
+		//tmSaveImage(TMP_DIRECTORY "HSHistoColored.ppm", m_ColorHistoImage);
+		if(g_debug_WAFMeter) {
+			tmSaveImage(TMP_DIRECTORY "HSHistoHSV.ppm", hsvOutImage);
+		}
+		tmReleaseImage(&hsvOutImage);
 	}
-	tmReleaseImage(&hsvOutImage);
-
 	return 0;
 }

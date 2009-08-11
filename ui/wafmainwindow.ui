@@ -30,7 +30,7 @@
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>64</height>
+        <height>72</height>
        </size>
       </property>
       <property name="frameShape">
@@ -40,17 +40,60 @@
        <enum>QFrame::Raised</enum>
       </property>
       <layout class="QHBoxLayout" name="horizontalLayout">
+       <property name="topMargin">
+        <number>4</number>
+       </property>
+       <property name="bottomMargin">
+        <number>4</number>
+       </property>
+       <item>
+        <widget class="QPushButton" name="camButton">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
+         <property name="toolTip">
+          <string>Activate camera grabbing</string>
+         </property>
+         <property name="text">
+          <string/>
+         </property>
+         <property name="icon">
+          <iconset resource="WAFMeter.qrc">
+           <normaloff>:/icons/camera-web.png</normaloff>:/icons/camera-web.png</iconset>
+         </property>
+         <property name="checkable">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
        <item>
         <widget class="QPushButton" name="snapButton">
+         <property name="enabled">
+          <bool>false</bool>
+         </property>
          <property name="text">
           <string>Snap</string>
+         </property>
+         <property name="icon">
+          <iconset resource="WAFMeter.qrc">
+           <normaloff>:/icons/camera-photo.png</normaloff>:/icons/camera-photo.png</iconset>
          </property>
         </widget>
        </item>
        <item>
         <widget class="QPushButton" name="fileButton">
+         <property name="toolTip">
+          <string>Open a picture file</string>
+         </property>
          <property name="text">
           <string>Open</string>
+         </property>
+         <property name="icon">
+          <iconset resource="WAFMeter.qrc">
+           <normaloff>:/icons/image-jpeg.png</normaloff>:/icons/image-jpeg.png</iconset>
+         </property>
+         <property name="shortcut">
+          <string>Ctrl+O</string>
          </property>
         </widget>
        </item>
@@ -60,7 +103,7 @@
     <item>
      <widget class="QProgressBar" name="wafProgressBar">
       <property name="value">
-       <number>24</number>
+       <number>100</number>
       </property>
      </widget>
     </item>
@@ -107,6 +150,8 @@
   <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="WAFMeter.qrc"/>
+ </resources>
  <connections/>
 </ui>

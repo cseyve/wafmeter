@@ -1,108 +1,107 @@
-<?xml version="1.0" encoding="UTF-8"?>
-<ui version="4.0">
+<ui version="4.0" >
  <class>WAFMainWindow</class>
- <widget class="QMainWindow" name="WAFMainWindow">
-  <property name="geometry">
+ <widget class="QMainWindow" name="WAFMainWindow" >
+  <property name="geometry" >
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>253</width>
-    <height>415</height>
+    <width>408</width>
+    <height>595</height>
    </rect>
   </property>
-  <property name="windowTitle">
+  <property name="windowTitle" >
    <string>WAF Meter</string>
   </property>
-  <property name="windowIcon">
-   <iconset resource="WAFMeter.qrc">
+  <property name="windowIcon" >
+   <iconset resource="WAFMeter.qrc" >
     <normaloff>:/icons/WAFMeter24.png</normaloff>:/icons/WAFMeter24.png</iconset>
   </property>
-  <widget class="QWidget" name="centralWidget">
-   <layout class="QVBoxLayout" name="verticalLayout">
+  <widget class="QWidget" name="centralWidget" >
+   <layout class="QVBoxLayout" name="verticalLayout" >
     <item>
-     <widget class="QLabel" name="imageLabel">
-      <property name="styleSheet">
-       <string notr="true">background-color: rgb(42, 42, 42);</string>
+     <widget class="QLabel" name="imageLabel" >
+      <property name="styleSheet" >
+       <string notr="true" >background-color: rgb(42, 42, 42);</string>
       </property>
-      <property name="text">
+      <property name="text" >
        <string/>
       </property>
-      <property name="pixmap">
-       <pixmap resource="WAFMeter.qrc">:/icons/WAFMeter128.png</pixmap>
+      <property name="pixmap" >
+       <pixmap resource="WAFMeter.qrc" >:/icons/WAFMeter128.png</pixmap>
       </property>
-      <property name="scaledContents">
-       <bool>true</bool>
+      <property name="scaledContents" >
+       <bool>false</bool>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QFrame" name="frame">
-      <property name="maximumSize">
+     <widget class="QFrame" name="frame" >
+      <property name="maximumSize" >
        <size>
         <width>16777215</width>
         <height>72</height>
        </size>
       </property>
-      <property name="frameShape">
+      <property name="frameShape" >
        <enum>QFrame::StyledPanel</enum>
       </property>
-      <property name="frameShadow">
+      <property name="frameShadow" >
        <enum>QFrame::Raised</enum>
       </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <property name="topMargin">
+      <layout class="QHBoxLayout" name="horizontalLayout" >
+       <property name="topMargin" >
         <number>4</number>
        </property>
-       <property name="bottomMargin">
+       <property name="bottomMargin" >
         <number>4</number>
        </property>
        <item>
-        <widget class="QPushButton" name="camButton">
-         <property name="enabled">
+        <widget class="QPushButton" name="camButton" >
+         <property name="enabled" >
           <bool>false</bool>
          </property>
-         <property name="toolTip">
+         <property name="toolTip" >
           <string>Activate camera grabbing</string>
          </property>
-         <property name="text">
+         <property name="text" >
           <string/>
          </property>
-         <property name="icon">
-          <iconset resource="WAFMeter.qrc">
+         <property name="icon" >
+          <iconset resource="WAFMeter.qrc" >
            <normaloff>:/icons/camera-web.png</normaloff>:/icons/camera-web.png</iconset>
          </property>
-         <property name="checkable">
+         <property name="checkable" >
           <bool>true</bool>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="snapButton">
-         <property name="enabled">
+        <widget class="QPushButton" name="snapButton" >
+         <property name="enabled" >
           <bool>false</bool>
          </property>
-         <property name="text">
+         <property name="text" >
           <string>Snap</string>
          </property>
-         <property name="icon">
-          <iconset resource="WAFMeter.qrc">
+         <property name="icon" >
+          <iconset resource="WAFMeter.qrc" >
            <normaloff>:/icons/camera-photo.png</normaloff>:/icons/camera-photo.png</iconset>
          </property>
         </widget>
        </item>
        <item>
-        <widget class="QPushButton" name="fileButton">
-         <property name="toolTip">
+        <widget class="QPushButton" name="fileButton" >
+         <property name="toolTip" >
           <string>Open a picture file</string>
          </property>
-         <property name="text">
+         <property name="text" >
           <string>Open</string>
          </property>
-         <property name="icon">
-          <iconset resource="WAFMeter.qrc">
+         <property name="icon" >
+          <iconset resource="WAFMeter.qrc" >
            <normaloff>:/icons/image-jpeg.png</normaloff>:/icons/image-jpeg.png</iconset>
          </property>
-         <property name="shortcut">
+         <property name="shortcut" >
           <string>Ctrl+O</string>
          </property>
         </widget>
@@ -111,57 +110,57 @@
      </widget>
     </item>
     <item>
-     <widget class="QProgressBar" name="wafProgressBar">
-      <property name="value">
+     <widget class="QProgressBar" name="wafProgressBar" >
+      <property name="value" >
        <number>100</number>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="Line" name="line">
-      <property name="orientation">
+     <widget class="Line" name="line" >
+      <property name="orientation" >
        <enum>Qt::Horizontal</enum>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QProgressBar" name="colorProgressBar">
-      <property name="value">
+     <widget class="QProgressBar" name="colorProgressBar" >
+      <property name="value" >
        <number>0</number>
       </property>
-      <property name="textDirection">
+      <property name="textDirection" >
        <enum>QProgressBar::TopToBottom</enum>
       </property>
-      <property name="format">
+      <property name="format" >
        <string>Color</string>
       </property>
      </widget>
     </item>
     <item>
-     <widget class="QProgressBar" name="contourProgressBar">
-      <property name="value">
+     <widget class="QProgressBar" name="contourProgressBar" >
+      <property name="value" >
        <number>0</number>
       </property>
-      <property name="format">
+      <property name="format" >
        <string>Simplicity</string>
       </property>
      </widget>
     </item>
    </layout>
   </widget>
-  <widget class="QToolBar" name="mainToolBar">
-   <attribute name="toolBarArea">
+  <widget class="QToolBar" name="mainToolBar" >
+   <attribute name="toolBarArea" >
     <enum>TopToolBarArea</enum>
    </attribute>
-   <attribute name="toolBarBreak">
+   <attribute name="toolBarBreak" >
     <bool>false</bool>
    </attribute>
   </widget>
-  <widget class="QStatusBar" name="statusBar"/>
+  <widget class="QStatusBar" name="statusBar" />
  </widget>
- <layoutdefault spacing="6" margin="11"/>
+ <layoutdefault spacing="6" margin="11" />
  <resources>
-  <include location="WAFMeter.qrc"/>
+  <include location="WAFMeter.qrc" />
  </resources>
  <connections/>
 </ui>

@@ -236,14 +236,14 @@ IplImage * tmAddBorder4x(IplImage * originalImage) {
 				originalImage->imageData + r * originalImage->widthStep, originalImage->widthStep);
 		}
 
-		IplImage * oldImage = originalImage;
-		cvReleaseImage(&oldImage);
-
-		originalImage = copyImage;
 
 		return copyImage;
 	}
-
+	else {
+		IplImage * copyImage = tmCreateImage(cvSize(originalImage->width, originalImage->height), IPL_DEPTH_8U, originalImage->nChannels);
+		cvCopy(originalImage, copyImage);
+		return copyImage;
+	}
 	return originalImage;
 }
 

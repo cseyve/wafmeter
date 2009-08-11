@@ -12,8 +12,6 @@ win32::DEFINES += VERSION_YY="2009" \
 	VERSION_MM="6" \
 	VERSION_DD="25"
 
-
-
 linux-g++:TMAKE_CXXFLAGS += -Wall \
 	-g \
 	-fexceptions \
@@ -28,10 +26,19 @@ linux-g++:TMAKE_CXXFLAGS += -Wall \
 
 linux-g++:DEFINES += LINUX
 
-LIBS_EXT = dylib
-linux-g++:LIBS_EXT = so
-win32:LIBS_EXT = lib
+LIBS_EXT = so
+macx::LIBS_EXT = dylib
+
+linux-g++: { 
+	LIBS_EXT = so 
+}
+
+win32: {
+	LIBS_EXT = lib
+}
+
 message( "Installation directory = $(PWD) ")
+
 LIBS =
 DYN_LIBS =
 STATIC_LIBS =

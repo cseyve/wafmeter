@@ -48,7 +48,8 @@ void WAFMeter::purgeScaled() {
 int WAFMeter::setImage(IplImage * img) {
 	purge();
 
-	if(!img) return -1;
+        if(!img) return -1;
+	if(!img->imageData) return -1;
 
 	m_waf_info.waf_factor = 0.2f;
 	m_waf_info.color_factor = 0.4f;

@@ -3,5 +3,8 @@
         <file>camera-web.png</file>
         <file>camera-photo.png</file>
         <file>image-jpeg.png</file>
+        <file>WAFMeter128.png</file>
+        <file>WAFMeter53.png</file>
+        <file>WAFMeter24.png</file>
     </qresource>
 </RCC>

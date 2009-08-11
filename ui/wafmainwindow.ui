@@ -13,6 +13,10 @@
   <property name="windowTitle">
    <string>WAF Meter</string>
   </property>
+  <property name="windowIcon">
+   <iconset resource="WAFMeter.qrc">
+    <normaloff>:/icons/WAFMeter24.png</normaloff>:/icons/WAFMeter24.png</iconset>
+  </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
     <item>
@@ -22,6 +26,12 @@
       </property>
       <property name="text">
        <string/>
+      </property>
+      <property name="pixmap">
+       <pixmap resource="WAFMeter.qrc">:/icons/WAFMeter128.png</pixmap>
+      </property>
+      <property name="scaledContents">
+       <bool>true</bool>
       </property>
      </widget>
     </item>

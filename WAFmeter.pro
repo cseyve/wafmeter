@@ -35,7 +35,7 @@ macx: {
 
 linux-g++ {
 	message("Linux specific options =================================================")
-	DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
+	DEFINES += "TRANSLATION_DIR=/usr/share/wafmeter"
 }
 win32:TARGET = $$join(TARGET,,d)
 
@@ -64,7 +64,7 @@ RESOURCES += ui/WAFMeter.qrc
 
 
 # # INSTALLATION
-# target.path = /usr/local/tamanoir
+# target.path = /usr/local/wafmeter
 # INSTALLS += target
 # FINAL CONFIGURATION ==================================================
 message( "")

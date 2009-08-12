@@ -161,7 +161,7 @@ unix: {
 	}
 	INSTALL_DUSTHOOVER = $(DUSTHOOVER_DIR)
 	message( Reading installation directory : '$$INSTALL_DUSTHOOVER')
-	count( $$INSTALL_DUSTHOOVER , 0 ):message("Installation directory is undefined !! Installing in '/usr/local/tamanoir'.")
+	count( $$INSTALL_DUSTHOOVER , 0 ):message("Installation directory is undefined !! Installing in '/usr/local/wafmeter'.")
 	else {
 		message( Installing in : $$INSTALL_DUSTHOOVER)
 		DEFINES += BASE_DIRECTORY=$$INSTALL_DUSTHOOVER
@@ -169,7 +169,6 @@ unix: {
 	}
 }
 
-# libtool --mode=link g++ -o Tamanoir .obj-simple/imgproc.o .obj-simple/imgutils.o .obj-simple/main.o .obj-simple/tamanoir.o .obj-simple/qimagedisplay.o .obj-simple/cv2tiff.o .obj-simple/moc_tamanoir.o .obj-simple/moc_qimagedisplay.o .obj-simple/qrc_tamanoir.o -L/usr/lib /usr/lib/libtiff.a /usr/local/lib/libcxcore.la /usr/local/lib/libcv.la /usr/local/lib/libcvaux.la /usr/local/lib/libhighgui.la -lQtGui -lQtCore -lpthread
 DYN_LIBS += -lcvaux \
 	-lhighgui
 STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a \
@@ -197,10 +196,6 @@ else {
 	# Dynamic libraries version
 	LIBS += $$DYN_LIBS
 }
-OTHER_FILES += build_mac_bundle.sh \
-	build_mac_dmg.py \
-	docs/Tamanoir-FR_AnnonceForums.txt \
-	qss/tamanoir-Gray.qss
 
 macx:message("MacOS X specific options =================================================")
 
@@ -208,7 +203,6 @@ macx:message("MacOS X specific options =========================================
 # DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
 linux-g++ {
 	message("Linux specific options =================================================")
-	DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
 }
 win32:TARGET = $$join(TARGET,,d)
 

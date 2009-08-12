@@ -138,6 +138,32 @@ int WAFMeter::processContour() {
 		tmSaveImage(TMP_DIRECTORY "Canny.pgm", m_cannyImage);
 	}
 
+	// Study contour shape
+	CvMemStorage* storage = cvCreateMemStorage(0);
+	CvSeq * contours = NULL;
+
+	cvFindContours( m_cannyImage, storage, &contours, sizeof(CvContour),
+					CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
+
+	// comment this out if you do not want approximation
+	contours = cvApproxPoly( contours, sizeof(CvContour), storage, CV_POLY_APPROX_DP, 3, 1 );
+
+	IplImage* cnt_img = tmCreateImage( cvSize(m_cannyImage->width,m_cannyImage->height), 8, 3 );
+	int levels = 3;
+	CvSeq* _contours = contours;
+	int _levels = levels ;//- 3;
+	if( _levels <= 0 ) // get to the nearest face to make it look more funny
+		_contours = _contours->h_next->h_next->h_next;
+
+	cvZero( cnt_img );
+	cvDrawContours( cnt_img, _contours, CV_RGB(255,0,0), CV_RGB(0,255,0), _levels, 3, CV_AA, cvPoint(0,0) );
+
+	if(g_debug_WAFMeter) {
+		tmSaveImage(TMP_DIRECTORY "CannyContours.pgm", cnt_img);
+	}
+	cvReleaseImage( &cnt_img );
+
+	cvReleaseMemStorage(&storage);
 	return 0;
 }
 
@@ -226,8 +252,8 @@ The values are then converted to the destination data type:
 			int s = (int)(sline[c]);
 			int v = (int)(vline[c]);
 
-			if(s > 128 // only the saturated tones
-				&& v > 64 // and not dark enough to be a noise color artefact
+			if(//s > 64 && // only the saturated tones
+				v > 64 // and not dark enough to be a noise color artefact
 			) {
 				color_factor += //(double)v / 255. *
 						// wafscale(h) *
@@ -251,6 +277,7 @@ The values are then converted to the destination data type:
 			}
 		}
 	}
+
 	if(color_factor_nb > 0) {
 		m_waf_info.color_factor = color_factor * 3 //* (double)color_factor_nb
 								  / (double)(s_plane->width*s_plane->height);

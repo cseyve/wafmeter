@@ -19,6 +19,7 @@ public:
 
 private:
     Ui::WAFMainWindow *ui;
+	QString m_path;
 
 	WAFMeter m_wafMeter;
 private slots:

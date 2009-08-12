@@ -6,6 +6,11 @@
 WAFMainWindow::WAFMainWindow(QWidget *parent)
     : QMainWindow(parent), ui(new Ui::WAFMainWindow)
 {
+	char home[512]=".";
+	if(getenv("HOME")) {
+		strcpy(home, getenv("HOME"));
+	}
+	m_path = QString(home);
     ui->setupUi(this);
 }
 
@@ -16,9 +21,14 @@ WAFMainWindow::~WAFMainWindow()
 
 void WAFMainWindow::on_fileButton_pressed() {
 	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
-						 ".",
+						 m_path,
 						 tr("Images (*.png *.xpm *.jpg)"));
 	if(fileName.isEmpty()) return;
+
+	QFileInfo fi(fileName);
+	if(!fi.exists()) return;
+
+	m_path = fi.absolutePath();
 
 	// load file
 	IplImage * iplImage = cvLoadImage(fileName.ascii());

@@ -48,9 +48,12 @@ void WAFMeter::purgeScaled() {
 int WAFMeter::setImage(IplImage * img) {
 	purge();
 
-        if(!img) return -1;
-	if(!img->imageData) return -1;
+	if(!img) return -1;
+	if(!img->imageData) {
+		fprintf(stderr, "WAFMeter::%s:%d : not img->imageData image\n", __func__, __LINE__);
 
+		return -1;
+	}
 	m_waf_info.waf_factor = 0.2f;
 	m_waf_info.color_factor = 0.4f;
 	m_waf_info.contour_factor = 0.5f;
@@ -58,7 +61,7 @@ int WAFMeter::setImage(IplImage * img) {
 
 	tmReleaseImage(&m_originalImage);
 	m_originalImage = tmAddBorder4x(img); // it will purge originalImage
-	fprintf(stderr, "ImageInfo::%s:%d : loaded %dx%d x %d\n", __func__, __LINE__,
+	fprintf(stderr, "WAFMeter::%s:%d : loaded %dx%d x %d\n", __func__, __LINE__,
 			m_originalImage->width, m_originalImage->height,
 			m_originalImage->nChannels );
 #define IMGINFO_WIDTH	400
@@ -94,10 +97,10 @@ int WAFMeter::setImage(IplImage * img) {
 
 	cvResize(m_originalImage, m_scaledImage);
 
-	fprintf(stderr, "ImageInfo::%s:%d : scaled to %dx%d\n", __func__, __LINE__,
+	fprintf(stderr, "WAFMeter::%s:%d : scaled to %dx%d\n", __func__, __LINE__,
 			m_scaledImage->width, m_scaledImage->height);
 
-	fprintf(stderr, "\nImageInfo::%s:%d : processHSV(m_scaledImage=%dx%d)\n", __func__, __LINE__,
+	fprintf(stderr, "\nWAFMeter::%s:%d : processHSV(m_scaledImage=%dx%d)\n", __func__, __LINE__,
 			m_scaledImage->width, m_scaledImage->height);fflush(stderr);
 
 
@@ -116,7 +119,11 @@ int WAFMeter::setImage(IplImage * img) {
 }
 /* Contour/shape analysis */
 int WAFMeter::processContour() {
-	if(!m_scaledImage) return -1;
+	if(!m_scaledImage) {
+		fprintf(stderr, "WAFMeter::%s:%d : no scaled image\n", __func__, __LINE__);
+
+		return -1;
+	}
 
 	//
 	if(!m_cannyImage) {
@@ -137,13 +144,16 @@ int WAFMeter::processContour() {
 
 
 int WAFMeter::processHSV() {
-	if(!m_scaledImage) return -1;
+	if(!m_scaledImage) {
+		fprintf(stderr, "WAFMeter::%s:%d : no scaled image\n", __func__, __LINE__);
 
+		return -1;
+	}
 
 	// Change to HSV
 	if(m_scaledImage->nChannels < 3) {
 		// Clear histogram and return
-		fprintf(stderr, "ImageInfo::%s:%d : not coloured image : nChannels=%d\n", __func__, __LINE__,
+		fprintf(stderr, "WAFMeter::%s:%d : not coloured image : nChannels=%d\n", __func__, __LINE__,
 			m_scaledImage->nChannels );
 		m_grayImage = m_scaledImage;
 		return 0;
@@ -219,7 +229,9 @@ The values are then converted to the destination data type:
 			if(s > 128 // only the saturated tones
 				&& v > 64 // and not dark enough to be a noise color artefact
 			) {
-				color_factor += (double)v / 255. * (double)s / 255.;
+				color_factor += //(double)v / 255. *
+						// wafscale(h) *
+						(double)s / 255.;
 				// FIXME : add WAF colors coef
 				color_factor_nb++;
 			}
@@ -240,7 +252,8 @@ The values are then converted to the destination data type:
 		}
 	}
 	if(color_factor_nb > 0) {
-		m_waf_info.color_factor = color_factor / (double)color_factor_nb ;
+		m_waf_info.color_factor = color_factor * 3 //* (double)color_factor_nb
+								  / (double)(s_plane->width*s_plane->height);
 	}
 
 	// save image for debug

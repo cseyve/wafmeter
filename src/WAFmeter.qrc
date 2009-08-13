@@ -1,0 +1,8 @@
+<RCC>
+    <qresource prefix="/" >
+        <file>WAFMeter.qss</file>
+    </qresource>
+    <qresource prefix="/icons" >
+        <file>camera-web.png</file>
+    </qresource>
+</RCC>

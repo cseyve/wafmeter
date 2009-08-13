@@ -146,7 +146,8 @@ int WAFMeter::processContour() {
 					CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
 
 	// comment this out if you do not want approximation
-	contours = cvApproxPoly( contours, sizeof(CvContour), storage, CV_POLY_APPROX_DP, 3, 1 );
+	//contours = cvApproxPoly( contours, sizeof(CvContour),
+	//						 storage, CV_POLY_APPROX_DP, 3, 1 );
 
 	IplImage* cnt_img = tmCreateImage( cvSize(m_cannyImage->width,m_cannyImage->height), 8, 3 );
 	int levels = 3;
@@ -158,6 +159,81 @@ int WAFMeter::processContour() {
 	cvZero( cnt_img );
 	cvDrawContours( cnt_img, _contours, CV_RGB(255,0,0), CV_RGB(0,255,0), _levels, 3, CV_AA, cvPoint(0,0) );
 
+	// Analyse contour shape
+	CvContour* contour = 0;
+	CvSeqWriter writer;
+	CvTreeNodeIterator iterator;
+	int i;
+
+	int nb_contours = 0;
+	int nb_segments = 0;
+	int maxLevel = 3;
+	cvInitTreeNodeIterator( &iterator, contours, maxLevel );
+	while( (contours = (CvSeq*)cvNextTreeNode( &iterator )) != 0 ) {
+		nb_contours ++;
+		nb_segments+= contours->total;
+
+		printf("nb cont=%d segments=%d\n", nb_contours, nb_segments);
+		CvSeqReader reader;
+		cvStartReadSeq( contours, &reader, 0 );
+		int val;
+		int elem_type = CV_MAT_TYPE(contours->flags);
+		CvPoint offset = cvPoint(0,0);
+		int count  = contours->total;
+		int thickness = 1;
+	//		CV_READ_SEQ_ELEM( val, reader );
+
+		printf("count = %d is read\n", count);
+		if( CV_IS_SEQ_POLYLINE( contours ))
+		{
+
+			printf("CV_IS_SEQ_POLYLINE\n");
+			if( thickness >= 0 )
+			{
+				CvPoint pt1, pt2;
+				int shift = 0;
+
+				count -= !CV_IS_SEQ_CLOSED(contours);
+				if( elem_type == CV_32SC2 )
+				{
+					CV_READ_SEQ_ELEM( pt1, reader );
+					pt1.x += offset.x;
+					pt1.y += offset.y;
+
+				}
+				else
+				{
+					CvPoint2D32f pt1f;
+					CV_READ_SEQ_ELEM( pt1f, reader );
+				}
+
+				for( i = 0; i < count; i++ )
+				{
+					if( elem_type == CV_32SC2 )
+					{
+						CV_READ_SEQ_ELEM( pt2, reader );
+						pt2.x += offset.x;
+						pt2.y += offset.y;
+					}
+					else
+					{
+						CvPoint2D32f pt2f;
+						CV_READ_SEQ_ELEM( pt2f, reader );
+						pt2.x = cvRound( pt2f.x /* * XY_ONE */);
+						pt2.y = cvRound( pt2f.y /* * XY_ONE */ );
+					}
+					//icvThickLine( mat, pt1, pt2, clr, thickness, line_type, 2, shift );
+					pt1 = pt2;
+				}
+
+
+			}
+		}
+	}
+
+
+	m_waf_info.contour_factor = 1.f - exp(- 1.f / ((float)nb_contours/100.f));
+
 	if(g_debug_WAFMeter) {
 		tmSaveImage(TMP_DIRECTORY "CannyContours.pgm", cnt_img);
 	}
@@ -167,7 +243,9 @@ int WAFMeter::processContour() {
 	return 0;
 }
 
-
+float wafscale(int h) {
+	return 1.f;
+}
 
 int WAFMeter::processHSV() {
 	if(!m_scaledImage) {
@@ -221,6 +299,7 @@ The values are then converted to the destination data type:
 
 	cvCvtPixToPlane( hsvImage, h_plane, s_plane, m_grayImage, 0 );
 
+	IplImage * colorWAFImage = NULL;
 	if(g_debug_WAFMeter) {
 		tmSaveImage(TMP_DIRECTORY "HImage.pgm", h_plane);
 		tmSaveImage(TMP_DIRECTORY "SImage.pgm", s_plane);
@@ -235,6 +314,8 @@ The values are then converted to the destination data type:
 			m_HSHistoImage = tmCreateImage(cvSize(H_MAX, S_MAX), IPL_DEPTH_8U, 1);
 		} else
 			cvZero(m_HSHistoImage);
+
+		colorWAFImage = tmCreateImage(cvSize(m_scaledImage->width, m_scaledImage->height), IPL_DEPTH_8U, 1);
 	}
 	double color_factor = 0.;
 	int color_factor_nb = 0;
@@ -252,17 +333,24 @@ The values are then converted to the destination data type:
 			int s = (int)(sline[c]);
 			int v = (int)(vline[c]);
 
+			float waf = //(double)v / 255. *
+					tmmax( wafscale(h) *
+						(float)s / 255.f * (float)v/255.f ,
+						0.f// (float)v/255.f
+						);
+
 			if(//s > 64 && // only the saturated tones
 				v > 64 // and not dark enough to be a noise color artefact
 			) {
-				color_factor += //(double)v / 255. *
-						// wafscale(h) *
-						(double)s / 255.;
+				color_factor += waf;
 				// FIXME : add WAF colors coef
 				color_factor_nb++;
 			}
 
 			if(g_debug_WAFMeter) {
+				u8 * cWAF = (u8 *)(colorWAFImage->imageData+r*colorWAFImage->widthStep)
+							+ c;
+				*cWAF = (u8)waf * 255.f;
 				if(h<m_HSHistoImage->widthStep
 				   && s<m_HSHistoImage->height) {
 					// Increase image
@@ -281,6 +369,8 @@ The values are then converted to the destination data type:
 	if(color_factor_nb > 0) {
 		m_waf_info.color_factor = color_factor * 3 //* (double)color_factor_nb
 								  / (double)(s_plane->width*s_plane->height);
+		if(m_waf_info.color_factor > 1.f)
+			m_waf_info.color_factor = 1.f;
 	}
 
 	// save image for debug
@@ -315,11 +405,13 @@ The values are then converted to the destination data type:
 			cvZero(m_ColorHistoImage);
 
 		cvCvtColor(hsvOutImage, m_ColorHistoImage, CV_HSV2BGR);
-		//tmSaveImage(TMP_DIRECTORY "HSHistoColored.ppm", m_ColorHistoImage);
+
+		tmSaveImage(TMP_DIRECTORY "colorWaf.pgm", colorWAFImage);
 		if(g_debug_WAFMeter) {
 			tmSaveImage(TMP_DIRECTORY "HSHistoHSV.ppm", hsvOutImage);
 		}
 		tmReleaseImage(&hsvOutImage);
+		tmReleaseImage(&colorWAFImage);
 	}
 	return 0;
 }

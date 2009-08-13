@@ -12,6 +12,14 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 	}
 	m_path = QString(home);
     ui->setupUi(this);
+	
+	QString filename=":/qss/WAFMeter.qss";
+	QFile file(filename);
+	file.open(QFile::ReadOnly);
+	QString styleSheet = QLatin1String(file.readAll());
+	setStyleSheet(styleSheet);
+
+
 }
 
 WAFMainWindow::~WAFMainWindow()

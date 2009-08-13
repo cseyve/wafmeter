@@ -1,35 +1,32 @@
 # -------------------------------------------------
 # Project created by QtCreator 2009-08-10T21:22:13
 # -------------------------------------------------
-
 TARGET = WAFmeter
 TEMPLATE = app
 DEFINES += QT3_SUPPORT
 include(opencv.pri)
-
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 linux-g++:TMAKE_CXXFLAGS += -Wall \
-	-g \
-	-O2 \
-	-fexceptions \
-	-Wimplicit \
-	-Wreturn-type \
-	-Wunused \
-	-Wswitch \
-	-Wcomment \
-	-Wuninitialized \
-	-Wparentheses \
-	-Wpointer-arith
-
-
+    -g \
+    -O2 \
+    -fexceptions \
+    -Wimplicit \
+    -Wreturn-type \
+    -Wunused \
+    -Wswitch \
+    -Wcomment \
+    -Wuninitialized \
+    -Wparentheses \
+    -Wpointer-arith
 ICON = icons/WAFMeter128.icns
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
+macx::message("MacOS X specific options =================================================")
 
-macx: {
-	message("MacOS X specific options =================================================")
-
-#TARGET = $$join(TARGET,,,_debug)
+# TARGET = $$join(TARGET,,,_debug)
 # DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
+linux-g++ { 
+    message("Linux specific options =================================================")
+    DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
 }
 
 
@@ -37,15 +34,14 @@ linux-g++ {
 	message("Linux specific options =================================================")
 	DEFINES += "TRANSLATION_DIR=/usr/share/wafmeter"
 }
+
 win32:TARGET = $$join(TARGET,,d)
 
 # }
-
 CONFIG += qt \
-	warn_on \
-	build_all \
-	release
-
+    warn_on \
+    build_all \
+    release
 SOURCES += src/main.cpp \
     src/wafmainwindow.cpp \
     src/wafmeter.cpp \
@@ -58,10 +54,7 @@ INCLUDEPATH += inc
 INCLUDEPATH += .
 DEPENDPATH += inc
 DEPENDPATH += .
-RESOURCES += ui/WAFMeter.qrc
-
-
-
+RESOURCES += WAFmeter.qrc
 
 # # INSTALLATION
 # target.path = /usr/local/wafmeter
@@ -77,3 +70,4 @@ message( " libs : $$LIBS ")
 message( "FINAL CONFIGURATION ================================================== ")
 message( "")
 message( "")
+OTHER_FILES += qss/WAFMeter.qss

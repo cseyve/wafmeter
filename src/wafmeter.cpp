@@ -108,15 +108,41 @@ int WAFMeter::setImage(IplImage * img) {
 	// Process color analysis
 	processHSV();
 
-	m_waf_info.contour_factor = 0.6f;
+	m_waf_info.contour_factor = 0.1f;
 	// Process contour/shape analysis
 	processContour();
 
-	m_waf_info.waf_factor = m_waf_info.color_factor * m_waf_info.contour_factor;
-
+	m_waf_info.waf_factor =
+			//(- (m_waf_info.color_factor )*( m_waf_info.color_factor ))
+			//* (- (m_waf_info.contour_factor )*( m_waf_info.contour_factor ))
+			1.f -
+			(1.f - m_waf_info.contour_factor )
+				* (1.f - m_waf_info.color_factor);
 	// ok, we're done
 	return 0;
 }
+
+/*
+ * Normalize vector
+ */
+CvPoint2D32f norm_vect(CvPoint pt1, CvPoint pt2) {
+	float dx = pt2.x - pt1.x;
+	float dy = pt2.y - pt1.y;
+	float norm = sqrtf(dx*dx+dy*dy);
+	CvPoint2D32f ret;
+	ret.x = dx/norm;
+	ret.y = dy/norm;
+
+	return ret;
+}
+
+float scalar_vect(CvPoint2D32f v1, CvPoint2D32f v2) {
+	float scalar = v1.x * v2.x + v1.y * v2.y;
+
+	return scalar;
+}
+
+
 /* Contour/shape analysis */
 int WAFMeter::processContour() {
 	if(!m_scaledImage) {
@@ -168,6 +194,10 @@ int WAFMeter::processContour() {
 	int nb_contours = 0;
 	int nb_segments = 0;
 	int maxLevel = 3;
+
+	double scalar_mean = 0.;
+	int scalar_mean_nb = 0;
+
 	cvInitTreeNodeIterator( &iterator, contours, maxLevel );
 	while( (contours = (CvSeq*)cvNextTreeNode( &iterator )) != 0 ) {
 		nb_contours ++;
@@ -179,9 +209,14 @@ int WAFMeter::processContour() {
 		int val;
 		int elem_type = CV_MAT_TYPE(contours->flags);
 		CvPoint offset = cvPoint(0,0);
+		CvPoint pt0 = cvPoint(0,0);
+		CvPoint old_pt = cvPoint(0,0);
 		int count  = contours->total;
 		int thickness = 1;
 	//		CV_READ_SEQ_ELEM( val, reader );
+
+		int scalar_nb = 0;
+		double scalar_sum = 0.;
 
 		printf("count = %d is read\n", count);
 		if( CV_IS_SEQ_POLYLINE( contours ))
@@ -223,16 +258,49 @@ int WAFMeter::processContour() {
 						pt2.y = cvRound( pt2f.y /* * XY_ONE */ );
 					}
 					//icvThickLine( mat, pt1, pt2, clr, thickness, line_type, 2, shift );
+
+					if(old_pt.x != 0) {
+						CvPoint2D32f vect1 = norm_vect(old_pt, pt1);
+						CvPoint2D32f vect2 = norm_vect(pt1, pt2) ;
+
+						float scalar = scalar_vect (vect1, vect2);
+
+						scalar_sum += scalar;
+						scalar_nb++;
+
+					/*	printf("\tscalar = (%g, %g) . (%g,%g) = %g\n",
+							   vect1.x, vect1.y,
+							   vect2.x, vect2.y,
+							   scalar);*/
+					}
+
+					old_pt = pt1;
 					pt1 = pt2;
 				}
 
+				if(scalar_nb>0) {
+					//scalar_sum /= scalar_nb;
+					//scalar_nb = 1;
+				}
 
+				//
+				//printf("\tscalar mean : %g\n", scalar_sum);
+				scalar_mean += scalar_sum;
+				scalar_mean_nb+=scalar_nb;
 			}
 		}
 	}
 
+	if(scalar_mean_nb>0)
+		scalar_mean /= (double)scalar_mean_nb;
 
-	m_waf_info.contour_factor = 1.f - exp(- 1.f / ((float)nb_contours/100.f));
+
+	m_waf_info.contour_factor =
+			(1.f - exp(- 1.f / ((float)nb_contours/100.f)) )*
+			scalar_mean;
+	fprintf(stderr, "\tFINAL : nb_segments=%d scalar mean : %g => factor=%g\n",
+		   nb_segments, scalar_mean,
+		   m_waf_info.contour_factor );
 
 	if(g_debug_WAFMeter) {
 		tmSaveImage(TMP_DIRECTORY "CannyContours.pgm", cnt_img);

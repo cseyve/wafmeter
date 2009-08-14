@@ -5,8 +5,8 @@
         <file>icons/image-jpeg.png</file>
         <file>icons/WAFMeter128.icns</file>
         <file>icons/WAFMeter24.png</file>
-        <file>icons/WAFMeter128.png</file>
         <file>icons/WAFMeter53.png</file>
         <file>qss/WAFMeter.qss</file>
+        <file>icons/WAFMeter128.png</file>
     </qresource>
 </RCC>

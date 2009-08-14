@@ -14,7 +14,7 @@
    <string>WAF Meter</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="WAFMeter.qrc">
+   <iconset resource="../WAFmeter.qrc">
     <normaloff>:/icons/WAFMeter24.png</normaloff>:/icons/WAFMeter24.png</iconset>
   </property>
   <property name="styleSheet">
@@ -23,16 +23,19 @@
   </property>
   <widget class="QWidget" name="centralWidget">
    <layout class="QVBoxLayout" name="verticalLayout">
+    <property name="spacing">
+     <number>1</number>
+    </property>
     <item>
      <widget class="QLabel" name="imageLabel">
       <property name="styleSheet">
-       <string notr="true">background-color: rgb(42, 42, 42);</string>
+       <string notr="true"/>
       </property>
       <property name="text">
        <string/>
       </property>
       <property name="pixmap">
-       <pixmap resource="WAFMeter.qrc">:/icons/WAFMeter128.png</pixmap>
+       <pixmap resource="../WAFmeter.qrc">:/icons/WAFMeter128.png</pixmap>
       </property>
       <property name="scaledContents">
        <bool>false</bool>
@@ -78,13 +81,6 @@
      </widget>
     </item>
     <item>
-     <widget class="Line" name="line">
-      <property name="orientation">
-       <enum>Qt::Horizontal</enum>
-      </property>
-     </widget>
-    </item>
-    <item>
      <widget class="QWidget" name="widget" native="true">
       <property name="sizePolicy">
        <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -107,10 +103,24 @@
         </widget>
        </item>
        <item>
-        <widget class="QDial" name="colorProgressBar"/>
+        <widget class="QDial" name="colorProgressBar">
+         <property name="maximumSize">
+          <size>
+           <width>50</width>
+           <height>50</height>
+          </size>
+         </property>
+        </widget>
        </item>
        <item>
-        <widget class="QDial" name="contourProgressBar"/>
+        <widget class="QDial" name="contourProgressBar">
+         <property name="maximumSize">
+          <size>
+           <width>50</width>
+           <height>50</height>
+          </size>
+         </property>
+        </widget>
        </item>
        <item>
         <widget class="QLabel" name="label_2">
@@ -123,41 +133,32 @@
      </widget>
     </item>
     <item>
-     <widget class="QFrame" name="frame">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
-      </property>
+     <widget class="QWidget" name="widget_2" native="true">
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>72</height>
+        <height>70</height>
        </size>
       </property>
-      <property name="frameShape">
-       <enum>QFrame::StyledPanel</enum>
-      </property>
-      <property name="frameShadow">
-       <enum>QFrame::Raised</enum>
-      </property>
-      <layout class="QHBoxLayout" name="horizontalLayout">
-       <property name="topMargin">
-        <number>4</number>
-       </property>
-       <property name="bottomMargin">
-        <number>4</number>
+      <layout class="QHBoxLayout" name="horizontalLayout_3">
+       <property name="margin">
+        <number>0</number>
        </property>
        <item>
         <widget class="QPushButton" name="camButton">
          <property name="enabled">
           <bool>false</bool>
          </property>
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Minimum" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
          <property name="minimumSize">
           <size>
-           <width>40</width>
-           <height>0</height>
+           <width>32</width>
+           <height>32</height>
           </size>
          </property>
          <property name="toolTip">
@@ -167,7 +168,7 @@
           <string/>
          </property>
          <property name="icon">
-          <iconset resource="WAFMeter.qrc">
+          <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/camera-web.png</normaloff>:/icons/camera-web.png</iconset>
          </property>
          <property name="checkable">
@@ -177,6 +178,18 @@
        </item>
        <item>
         <widget class="QPushButton" name="fileButton">
+         <property name="sizePolicy">
+          <sizepolicy hsizetype="Preferred" vsizetype="Maximum">
+           <horstretch>0</horstretch>
+           <verstretch>0</verstretch>
+          </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
          <property name="toolTip">
           <string>Open a picture file</string>
          </property>
@@ -184,7 +197,7 @@
           <string>Open</string>
          </property>
          <property name="icon">
-          <iconset resource="WAFMeter.qrc">
+          <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/image-jpeg.png</normaloff>:/icons/image-jpeg.png</iconset>
          </property>
          <property name="shortcut">
@@ -209,7 +222,7 @@
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>
-  <include location="WAFMeter.qrc"/>
+  <include location="../WAFmeter.qrc"/>
  </resources>
  <connections/>
 </ui>

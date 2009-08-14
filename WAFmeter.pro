@@ -28,13 +28,10 @@ linux-g++ {
     message("Linux specific options =================================================")
     DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
 }
-
-
-linux-g++ {
-	message("Linux specific options =================================================")
-	DEFINES += "TRANSLATION_DIR=/usr/share/wafmeter"
+linux-g++ { 
+    message("Linux specific options =================================================")
+    DEFINES += "TRANSLATION_DIR=/usr/share/wafmeter"
 }
-
 win32:TARGET = $$join(TARGET,,d)
 
 # }
@@ -70,4 +67,5 @@ message( " libs : $$LIBS ")
 message( "FINAL CONFIGURATION ================================================== ")
 message( "")
 message( "")
-OTHER_FILES += qss/WAFMeter.qss
+OTHER_FILES += qss/WAFMeter.qss \
+    qss/WAFMeter.qss

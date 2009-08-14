@@ -8,5 +8,8 @@
         <file>icons/WAFMeter53.png</file>
         <file>qss/WAFMeter.qss</file>
         <file>icons/WAFMeter128.png</file>
+        <file>screenshots/iphone.png</file>
+        <file>icons/bgcolor.png</file>
+        <file>icons/Dialer.png</file>
     </qresource>
 </RCC>

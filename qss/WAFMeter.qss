@@ -1,6 +1,11 @@
-WAFMainWindow {
+/*WAFMainWindow {
 	 background-color: #c2ff91;
+}*/
+QIphoneScreenWidget {
+	background-color: #ffffff;
+	background-image: url(:/icons/bgcolor.png);
 }
+
 QProgressBar {
 	 border-radius: 6px;
 	 background-color: #72ff00;

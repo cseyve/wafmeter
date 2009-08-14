@@ -1,8 +1,11 @@
-
+WAFMainWindow {
+	 background-color: #c2ff91;
+}
 QProgressBar {
 	 border-radius: 6px;
-	 background-color: #88CD44;
+	 background-color: #72ff00;
 }
+
 QDial {
 	 border-radius: 12px;
 	 background-color: #FD18CD;
@@ -14,6 +17,6 @@ QProgressBar::chunk {
 	 border-radius: 8px;
 	 border-width: 2px;
 /*    width: 10px;
-     margin: 0.5px;*/
+	 margin: 0.5px;*/
  }
 

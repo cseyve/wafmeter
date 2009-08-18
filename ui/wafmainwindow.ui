@@ -51,7 +51,7 @@
       <property name="minimumSize">
        <size>
         <width>322</width>
-        <height>440</height>
+        <height>500</height>
        </size>
       </property>
       <property name="styleSheet">
@@ -201,9 +201,6 @@ background-image: url(:/icons/bgcolor.png);</string>
           </property>
           <item>
            <widget class="QPushButton" name="camButton">
-            <property name="enabled">
-             <bool>false</bool>
-            </property>
             <property name="sizePolicy">
              <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
               <horstretch>0</horstretch>

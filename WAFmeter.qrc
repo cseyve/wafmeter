@@ -10,6 +10,5 @@
         <file>icons/WAFMeter128.png</file>
         <file>screenshots/iphone.png</file>
         <file>icons/bgcolor.png</file>
-        <file>icons/Dialer.png</file>
     </qresource>
 </RCC>

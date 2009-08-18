@@ -28,10 +28,8 @@ linux-g++ {
     message("Linux specific options =================================================")
     DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
 }
-linux-g++ { 
-    message("Linux specific options =================================================")
-    DEFINES += "TRANSLATION_DIR=/usr/share/wafmeter"
-}
+
+
 win32:TARGET = $$join(TARGET,,d)
 
 # }

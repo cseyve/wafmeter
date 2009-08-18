@@ -2,7 +2,7 @@
 #include "imgutils.h"
 #include <highgui.h>
 
-u8 g_debug_WAFMeter = 1;
+u8 g_debug_WAFMeter = 0;
 
 WAFMeter::WAFMeter()
 {
@@ -46,26 +46,39 @@ void WAFMeter::purgeScaled() {
 }
 
 int WAFMeter::setImage(IplImage * img) {
-	purge();
+	if(!img) {
+		fprintf(stderr, "WAFMeter::%s:%d : no img\n", __func__, __LINE__);
 
-	if(!img) return -1;
+		return -1;
+	}
+
+	if(m_originalImage) {
+		if(abs(m_originalImage->width - img->width)>=4
+		   || m_originalImage->height
+		   ) {
+			purge();
+		}
+	}
+
 	if(!img->imageData) {
 		fprintf(stderr, "WAFMeter::%s:%d : not img->imageData image\n", __func__, __LINE__);
 
 		return -1;
 	}
-	m_waf_info.waf_factor = 0.2f;
-	m_waf_info.color_factor = 0.4f;
-	m_waf_info.contour_factor = 0.5f;
+	m_waf_info.waf_factor = 0.f;
+	m_waf_info.color_factor = 0.f;
+	m_waf_info.contour_factor = 0.f;
 
 
-	tmReleaseImage(&m_originalImage);
-	m_originalImage = tmAddBorder4x(img); // it will purge originalImage
-	fprintf(stderr, "WAFMeter::%s:%d : loaded %dx%d x %d\n", __func__, __LINE__,
-			m_originalImage->width, m_originalImage->height,
-			m_originalImage->nChannels );
 #define IMGINFO_WIDTH	400
 #define IMGINFO_HEIGHT	400
+	tmReleaseImage(&m_originalImage);
+	m_originalImage = tmAddBorder4x(img); // it will purge originalImage
+	if(g_debug_WAFMeter) {
+		fprintf(stderr, "WAFMeter::%s:%d : loaded %dx%d x %d\n", __func__, __LINE__,
+			m_originalImage->width, m_originalImage->height,
+			m_originalImage->nChannels );
+	}
 
 	// Scale to analysis size
 //		cvResize(tmpDisplayImage, new_displayImage, CV_INTER_LINEAR );
@@ -97,13 +110,13 @@ int WAFMeter::setImage(IplImage * img) {
 
 	cvResize(m_originalImage, m_scaledImage);
 
-	fprintf(stderr, "WAFMeter::%s:%d : scaled to %dx%d\n", __func__, __LINE__,
+	if(g_debug_WAFMeter) {
+		fprintf(stderr, "WAFMeter::%s:%d : scaled to %dx%d\n", __func__, __LINE__,
 			m_scaledImage->width, m_scaledImage->height);
 
-	fprintf(stderr, "\nWAFMeter::%s:%d : processHSV(m_scaledImage=%dx%d)\n", __func__, __LINE__,
+		fprintf(stderr, "\nWAFMeter::%s:%d : processHSV(m_scaledImage=%dx%d)\n", __func__, __LINE__,
 			m_scaledImage->width, m_scaledImage->height);fflush(stderr);
-
-
+	}
 
 	// Process color analysis
 	processHSV();
@@ -170,20 +183,24 @@ int WAFMeter::processContour() {
 
 	cvFindContours( m_cannyImage, storage, &contours, sizeof(CvContour),
 					CV_RETR_TREE, CV_CHAIN_APPROX_SIMPLE, cvPoint(0,0) );
+	if(!contours) return -1;
 
 	// comment this out if you do not want approximation
 	//contours = cvApproxPoly( contours, sizeof(CvContour),
 	//						 storage, CV_POLY_APPROX_DP, 3, 1 );
 
-	IplImage* cnt_img = tmCreateImage( cvSize(m_cannyImage->width,m_cannyImage->height), 8, 3 );
 	int levels = 3;
 	CvSeq* _contours = contours;
 	int _levels = levels ;//- 3;
 	if( _levels <= 0 ) // get to the nearest face to make it look more funny
 		_contours = _contours->h_next->h_next->h_next;
 
-	cvZero( cnt_img );
-	cvDrawContours( cnt_img, _contours, CV_RGB(255,0,0), CV_RGB(0,255,0), _levels, 3, CV_AA, cvPoint(0,0) );
+	IplImage* cnt_img = NULL;
+	if(g_debug_WAFMeter) {
+		cnt_img = tmCreateImage( cvSize(m_cannyImage->width,m_cannyImage->height), 8, 3 );
+		cvZero( cnt_img );
+		cvDrawContours( cnt_img, _contours, CV_RGB(255,0,0), CV_RGB(0,255,0), _levels, 3, CV_AA, cvPoint(0,0) );
+	}
 
 	// Analyse contour shape
 	CvContour* contour = 0;
@@ -198,12 +215,13 @@ int WAFMeter::processContour() {
 	double scalar_mean = 0.;
 	int scalar_mean_nb = 0;
 
+
 	cvInitTreeNodeIterator( &iterator, contours, maxLevel );
 	while( (contours = (CvSeq*)cvNextTreeNode( &iterator )) != 0 ) {
 		nb_contours ++;
 		nb_segments+= contours->total;
 
-		printf("nb cont=%d segments=%d\n", nb_contours, nb_segments);
+		//printf("nb cont=%d segments=%d\n", nb_contours, nb_segments);
 		CvSeqReader reader;
 		cvStartReadSeq( contours, &reader, 0 );
 		int val;
@@ -218,11 +236,11 @@ int WAFMeter::processContour() {
 		int scalar_nb = 0;
 		double scalar_sum = 0.;
 
-		printf("count = %d is read\n", count);
+//		printf("count = %d is read\n", count);
 		if( CV_IS_SEQ_POLYLINE( contours ))
 		{
 
-			printf("CV_IS_SEQ_POLYLINE\n");
+//			printf("CV_IS_SEQ_POLYLINE\n");
 			if( thickness >= 0 )
 			{
 				CvPoint pt1, pt2;
@@ -298,14 +316,14 @@ int WAFMeter::processContour() {
 	m_waf_info.contour_factor =
 			(1.f - exp(- 1.f / ((float)nb_contours/100.f)) )*
 			scalar_mean;
-	fprintf(stderr, "\tFINAL : nb_segments=%d scalar mean : %g => factor=%g\n",
+	if(g_debug_WAFMeter) {
+		fprintf(stderr, "\tFINAL : nb_segments=%d scalar mean : %g => factor=%g\n",
 		   nb_segments, scalar_mean,
 		   m_waf_info.contour_factor );
 
-	if(g_debug_WAFMeter) {
 		tmSaveImage(TMP_DIRECTORY "CannyContours.pgm", cnt_img);
+		cvReleaseImage( &cnt_img );
 	}
-	cvReleaseImage( &cnt_img );
 
 	cvReleaseMemStorage(&storage);
 	return 0;

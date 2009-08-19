@@ -38,7 +38,7 @@
      <number>46</number>
     </property>
     <property name="topMargin">
-     <number>56</number>
+     <number>10</number>
     </property>
     <item>
      <widget class="QWidget" name="iphoneScreenWidget" native="true">
@@ -162,6 +162,9 @@ background-image: url(:/icons/bgcolor.png);</string>
             <property name="styleSheet">
              <string notr="true">background-color: rgb(255, 0, 230);</string>
             </property>
+            <property name="tracking">
+             <bool>false</bool>
+            </property>
            </widget>
           </item>
           <item>
@@ -174,6 +177,9 @@ background-image: url(:/icons/bgcolor.png);</string>
             </property>
             <property name="styleSheet">
              <string notr="true">background-color: rgb(255, 0, 230);</string>
+            </property>
+            <property name="tracking">
+             <bool>false</bool>
             </property>
            </widget>
           </item>

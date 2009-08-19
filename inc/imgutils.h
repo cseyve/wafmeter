@@ -131,7 +131,7 @@ void tmDilateImage(IplImage * src, IplImage * dst, int kernelsize = 1, int itera
 IplImage * tmOpenTiffImage(const char * filename, int * dpi);
 
 /** @brief Load an OpenCV IplImage as file */
-IplImage * tmLoadImage(const char * filename, int * dpi = NULL);
+IplImage * tmLoadImage(const char * filename);
 
 /** @brief Save an OpenCV IplImage as file */
 void tmSaveImage(const char * filename, IplImage * src);

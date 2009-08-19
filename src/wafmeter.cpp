@@ -236,11 +236,8 @@ int WAFMeter::processContour() {
 		int scalar_nb = 0;
 		double scalar_sum = 0.;
 
-//		printf("count = %d is read\n", count);
 		if( CV_IS_SEQ_POLYLINE( contours ))
 		{
-
-//			printf("CV_IS_SEQ_POLYLINE\n");
 			if( thickness >= 0 )
 			{
 				CvPoint pt1, pt2;
@@ -276,6 +273,8 @@ int WAFMeter::processContour() {
 						pt2.y = cvRound( pt2f.y /* * XY_ONE */ );
 					}
 					//icvThickLine( mat, pt1, pt2, clr, thickness, line_type, 2, shift );
+				
+					if(cnt_img) cvLine(cnt_img, pt1, pt2, CV_RGB(0,0, 255), 1);
 
 					if(old_pt.x != 0) {
 						CvPoint2D32f vect1 = norm_vect(old_pt, pt1);
@@ -436,7 +435,7 @@ The values are then converted to the destination data type:
 			if(g_debug_WAFMeter) {
 				u8 * cWAF = (u8 *)(colorWAFImage->imageData+r*colorWAFImage->widthStep)
 							+ c;
-				*cWAF = (u8)waf * 255.f;
+				*cWAF = (u8)(waf * 255.f);
 				if(h<m_HSHistoImage->widthStep
 				   && s<m_HSHistoImage->height) {
 					// Increase image

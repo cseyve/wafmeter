@@ -1983,12 +1983,11 @@ void tmEraseRegion(
 
 extern int saveIplImageAsTIFF(IplImage* img,  const char * outfilename, char * compressionarg);
 
-IplImage * tmLoadImage(const char *filename, int * dpi) {
+IplImage * tmLoadImage(const char *filename) {
 	IplImage * originalImage = NULL;
 
-	originalImage = cvLoadImage(filename,
-					(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR)
-					);
+	originalImage = cvLoadImage(filename);
+					//(CV_LOAD_IMAGE_ANYDEPTH | CV_LOAD_IMAGE_ANYCOLOR) );
 	return originalImage;
 }
 

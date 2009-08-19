@@ -54,43 +54,6 @@ win32: {
 		-lcv
 }
 unix: {
-	# Test if libtiff is installed ==============================
-	exists( /usr/local/include/tiffio.h ) {
-		INCLUDEPATH += /usr/local/include
-		DYN_LIBS += -L/usr/local/lib \
-			-ltiff
-		#SOURCES += src/cv2tiff.cpp
-		DEFINES += HAVE_LIBTIFF
-		STATIC_LIBS += /usr/local/lib/libtiff.a
-	}
-	else {
-		exists( /opt/local/include/tiffio.h ) {
-			INCLUDEPATH += /opt/local/include
-			DYN_LIBS += -L/opt/local/lib \
-				-ltiff
-			#SOURCES += src/cv2tiff.cpp
-			DEFINES += HAVE_LIBTIFF
-			STATIC_LIBS += /opt/local/lib/libtiff.a
-		}
-		else {
-			exists( /sw/include/tiffio.h ) {
-				INCLUDEPATH += /sw/include
-				DYN_LIBS += -L/sw/lib \
-					-ltiff
-				#SOURCES += src/cv2tiff.cpp
-				DEFINES += HAVE_LIBTIFF
-				STATIC_LIBS += /sw/lib/libtiff.a
-			}
-			else:exists( /usr/include/tiffio.h ) {
-				INCLUDEPATH += /usr/include
-				DYN_LIBS += -ltiff
-				#SOURCES += src/cv2tiff.cpp
-				DEFINES += HAVE_LIBTIFF
-				STATIC_LIBS += /usr/lib/libtiff.a
-			}
-		}
-	}
-
 	# Test if OpenCV library is present
 	OPENCV_STATIC_LIBDIR =
 	exists( /opt/local/include/opencv/cv.hpp) {

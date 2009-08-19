@@ -4,7 +4,9 @@
 TARGET = WAFmeter
 TEMPLATE = app
 DEFINES += QT3_SUPPORT
+
 include(opencv.pri)
+
 QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 linux-g++:TMAKE_CXXFLAGS += -Wall \
     -g \
@@ -26,9 +28,8 @@ macx::message("MacOS X specific options ========================================
 # DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
 linux-g++ { 
     message("Linux specific options =================================================")
-    DEFINES += "TRANSLATION_DIR=/usr/share/tamanoir"
+    DEFINES += "TRANSLATION_DIR=/usr/share/"
 }
-
 
 win32:TARGET = $$join(TARGET,,d)
 

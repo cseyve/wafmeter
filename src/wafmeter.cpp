@@ -1,20 +1,26 @@
+
 #include "wafmeter.h"
 #include "imgutils.h"
 #include <highgui.h>
 
-u8 g_debug_WAFMeter = 0;
+#define MUNORM(a) (((a)<0.f) ? 0.f : ( ((a)>1.f) ? 1.f : (a)))
+
+
+u8 g_debug_WAFMeter = 1;
 
 WAFMeter::WAFMeter()
 {
 	init();
 }
+
 void WAFMeter::init() {
 	memset(&m_waf_info, 0, sizeof(t_waf_info));
-
+	memset(&m_details, 0, sizeof(t_waf_info_details));
 	m_originalImage = NULL;
 
 	m_scaledImage = m_grayImage = m_HSHistoImage =
-	m_HistoImage = m_ColorHistoImage = hsvImage = h_plane = s_plane = NULL;
+	m_HistoImage = m_ColorHistoImage =
+				   hsvImage = h_plane = s_plane = v_plane = NULL;
 
 	m_cannyImage = 	NULL;
 }
@@ -42,6 +48,7 @@ void WAFMeter::purgeScaled() {
 	tmReleaseImage(&hsvImage);
 	tmReleaseImage(&h_plane);
 	tmReleaseImage(&s_plane);
+	tmReleaseImage(&v_plane);
 	tmReleaseImage(&m_ColorHistoImage);
 }
 
@@ -69,6 +76,7 @@ int WAFMeter::setImage(IplImage * img) {
 	m_waf_info.color_factor = 0.f;
 	m_waf_info.contour_factor = 0.f;
 
+	memset(&m_details, 0, sizeof(t_waf_info_details));
 
 #define IMGINFO_WIDTH	400
 #define IMGINFO_HEIGHT	400
@@ -125,12 +133,21 @@ int WAFMeter::setImage(IplImage * img) {
 	// Process contour/shape analysis
 	processContour();
 
+
+	m_details.mu_color = m_waf_info.color_factor;
+
 	m_waf_info.waf_factor =
 			//(- (m_waf_info.color_factor )*( m_waf_info.color_factor ))
-			//* (- (m_waf_info.contour_factor )*( m_waf_info.contour_factor ))
-			1.f -
-			(1.f - m_waf_info.contour_factor )
-				* (1.f - m_waf_info.color_factor);
+			// AND = multiply
+			// ( (m_waf_info.contour_factor )*( m_waf_info.color_factor ));
+			// Quadratic mean :
+			sqrtf(
+					(m_waf_info.contour_factor )*( m_waf_info.contour_factor )
+					+ (m_waf_info.color_factor )*( m_waf_info.color_factor ))
+			//1.f -
+			//(1.f - m_waf_info.contour_factor )
+			//	* (1.f - m_waf_info.color_factor)
+			;
 	// ok, we're done
 	return 0;
 }
@@ -173,9 +190,6 @@ int WAFMeter::processContour() {
 	}
 
 	cvCanny(m_grayImage, m_cannyImage, 1500, 500, 5);
-	if(g_debug_WAFMeter) {
-		tmSaveImage(TMP_DIRECTORY "Canny.pgm", m_cannyImage);
-	}
 
 	// Study contour shape
 	CvMemStorage* storage = cvCreateMemStorage(0);
@@ -198,8 +212,8 @@ int WAFMeter::processContour() {
 	IplImage* cnt_img = NULL;
 	if(g_debug_WAFMeter) {
 		cnt_img = tmCreateImage( cvSize(m_cannyImage->width,m_cannyImage->height), 8, 3 );
-		cvZero( cnt_img );
-		cvDrawContours( cnt_img, _contours, CV_RGB(255,0,0), CV_RGB(0,255,0), _levels, 3, CV_AA, cvPoint(0,0) );
+//		cvZero( cnt_img );
+//		cvDrawContours( cnt_img, _contours, CV_RGB(255,0,0), CV_RGB(0,255,0), _levels, 3, CV_AA, cvPoint(0,0) );
 	}
 
 	// Analyse contour shape
@@ -215,7 +229,13 @@ int WAFMeter::processContour() {
 	double scalar_mean = 0.;
 	int scalar_mean_nb = 0;
 
+	if(g_debug_WAFMeter) {
+		tmSaveImage(TMP_DIRECTORY "Canny.pgm", m_cannyImage);
+	}
+	cvZero(m_cannyImage);
 
+	double penality_sum = 0.;
+	int nb_buttons = 0, nb_corners = 0, nb_closed = 0;
 	cvInitTreeNodeIterator( &iterator, contours, maxLevel );
 	while( (contours = (CvSeq*)cvNextTreeNode( &iterator )) != 0 ) {
 		nb_contours ++;
@@ -236,6 +256,7 @@ int WAFMeter::processContour() {
 		int scalar_nb = 0;
 		double scalar_sum = 0.;
 
+		int nb_closed = 0;
 		if( CV_IS_SEQ_POLYLINE( contours ))
 		{
 			if( thickness >= 0 )
@@ -244,6 +265,12 @@ int WAFMeter::processContour() {
 				int shift = 0;
 
 				count -= !CV_IS_SEQ_CLOSED(contours);
+
+				bool is_closed = CV_IS_SEQ_CLOSED(contours);
+				if(is_closed) {
+					nb_closed ++;
+				}
+
 				if( elem_type == CV_32SC2 )
 				{
 					CV_READ_SEQ_ELEM( pt1, reader );
@@ -256,6 +283,11 @@ int WAFMeter::processContour() {
 					CvPoint2D32f pt1f;
 					CV_READ_SEQ_ELEM( pt1f, reader );
 				}
+
+				float contour_length = 0.f;
+				float penality_mean = 0.f;
+				int xmin = m_cannyImage->width, xmax = 0;
+				int ymin = m_cannyImage->height, ymax = 0;
 
 				for( i = 0; i < count; i++ )
 				{
@@ -274,14 +306,55 @@ int WAFMeter::processContour() {
 					}
 					//icvThickLine( mat, pt1, pt2, clr, thickness, line_type, 2, shift );
 				
-					if(cnt_img) cvLine(cnt_img, pt1, pt2, CV_RGB(0,0, 255), 1);
+					static u8 line_r = 37, line_g = 67, line_b = 113;
+					line_r += 37;
+					line_g += 67;
+					line_b += 113;
+
+
+
+					if(pt1.x < xmin) xmin = pt1.x;
+					if(pt1.x > xmax) xmax = pt1.x;
+					if(pt1.y < ymin) ymin = pt1.y;
+					if(pt1.y > ymax) ymax = pt1.y;
 
 					if(old_pt.x != 0) {
 						CvPoint2D32f vect1 = norm_vect(old_pt, pt1);
 						CvPoint2D32f vect2 = norm_vect(pt1, pt2) ;
 
-						float scalar = scalar_vect (vect1, vect2);
+						float dx = pt1.x - pt2.x;
+						float dy = pt1.y - pt2.y;
+						float len1_2 = sqrtf(dx*dx + dy*dy);
+						float dx2 = pt1.x - old_pt.x;
+						float dy2 = pt1.y - old_pt.y;
+						float len1_old = sqrtf(dx2*dx2 + dy2*dy2);
 
+						contour_length += len1_2;
+
+						// best is round angled, so scalar shloud be near 1
+						float scalar = scalar_vect(vect1, vect2);
+						float scalar_penality = 1.f - fabs(scalar_vect (vect1, vect2));
+
+
+
+						if(len1_2>4
+						   && len1_old > 4
+						   && scalar<0.1f
+						   && scalar > -0.1f
+						   && m_cannyImage
+						//   && len1_2>3 && len1_old>3
+						   ) { // draw a circle around the button
+							nb_corners++;
+							if(cnt_img)
+								cvRectangle( cnt_img ,
+										cvPoint(pt1.x-4, pt1.y-4),
+										cvPoint(pt1.x+4, pt1.y+4),
+										CV_RGB(line_r, line_g, line_b),
+										1);
+						}
+
+
+						penality_mean += scalar_penality;
 						scalar_sum += scalar;
 						scalar_nb++;
 
@@ -291,16 +364,46 @@ int WAFMeter::processContour() {
 							   scalar);*/
 					}
 
+					if(cnt_img) {
+						cvLine(cnt_img, pt1, pt2,
+							   CV_RGB(line_r, line_g, line_b), 1);
+					}
+
 					old_pt = pt1;
 					pt1 = pt2;
 				}
 
 				if(scalar_nb>0) {
-					//scalar_sum /= scalar_nb;
-					//scalar_nb = 1;
+					scalar_sum /= scalar_nb;
+					scalar_nb = 1;
+					penality_mean /= scalar_nb;
 				}
 
-				//
+				/* count buttons
+				   e.g. a button is closed and small
+
+				*/
+				if((xmax - xmin)<m_cannyImage->width/20
+				   && (ymax - ymin)<m_cannyImage->height/20) {
+					float ratio_wh = (xmin != ymin ?
+							(float)(ymax - ymin)/(float)(xmax - xmin)
+							: 0);
+
+					// small enouch to be a button
+					if(cnt_img && fabs(ratio_wh-1.f)<0.2f) { // draw a circle around the button
+						cvCircle(cnt_img, cvPoint((xmin+xmax)/2, (ymin+ymax)/2),
+								 tmmax((xmax-xmin), (ymax-ymin))/2,
+								 CV_RGB(255,0,0), 1);
+						cvCircle(cnt_img, cvPoint((xmin+xmax)/2, (ymin+ymax)/2),
+								 tmmin((xmax-xmin), (ymax-ymin))/2,
+								 CV_RGB(255,127,0), 1);
+					}
+					nb_buttons++;
+				}
+				if(is_closed) {
+				}
+				penality_sum += penality_mean ;
+
 				//printf("\tscalar mean : %g\n", scalar_sum);
 				scalar_mean += scalar_sum;
 				scalar_mean_nb+=scalar_nb;
@@ -308,16 +411,41 @@ int WAFMeter::processContour() {
 		}
 	}
 
-	if(scalar_mean_nb>0)
+	if(scalar_mean_nb>0) {
 		scalar_mean /= (double)scalar_mean_nb;
+		penality_sum /= (double)scalar_mean_nb;
+	}
 
+	// 30 countours are ok, 100 are too much
+	m_details.nb_contours = nb_contours;
+	m_details.mu_contours = MUNORM( 1.f - (m_details.nb_contours - 30.f) /400.f );
 
-	m_waf_info.contour_factor =
-			(1.f - exp(- 1.f / ((float)nb_contours/100.f)) )*
-			scalar_mean;
+	m_details.nb_segments = nb_segments;
+	m_details.mu_segments = MUNORM( 1.f - (m_details.nb_segments - 5000.f) /20000.f );
+
+	m_details.scalar_mean = scalar_mean;
+	// let's say 0.2 is the best
+	m_details.mu_scalar = MUNORM( 1.f - (scalar_mean - 0.2f )/0.6f);
+
+	m_details.nb_corners = nb_corners;
+	m_details.mu_corners = MUNORM( 1.f - (m_details.nb_contours - 30.f) /400.f );
+	m_details.nb_buttons = nb_buttons;
+	m_details.mu_buttons = MUNORM( 1.f - (m_details.nb_contours - 30.f) /400.f );
+
+	m_waf_info.contour_factor = 0.15f + (
+		m_details.mu_buttons + m_details.mu_contours + m_details.mu_corners
+		+ m_details.mu_scalar + m_details.mu_segments)/5.f*0.85f;
+			;
+
 	if(g_debug_WAFMeter) {
-		fprintf(stderr, "\tFINAL : nb_segments=%d scalar mean : %g => factor=%g\n",
-		   nb_segments, scalar_mean,
+		fprintf(stderr, "\tFINAL : penality=%g "
+				"nb_contour=%d=>%g "
+				"nb_closed = %d nb_buttons=%d corners=%d "
+				"nb_segments=%d scalar mean : %g => factor=%g\n",
+			penality_sum,
+			nb_contours, m_details.mu_contours,
+			nb_closed,nb_buttons,nb_corners,
+			nb_segments, scalar_mean,
 		   m_waf_info.contour_factor );
 
 		tmSaveImage(TMP_DIRECTORY "CannyContours.pgm", cnt_img);
@@ -328,8 +456,52 @@ int WAFMeter::processContour() {
 	return 0;
 }
 
-float wafscale(int h) {
-	return 1.f;
+static u8 wafscale_init = 0;
+static float wafscale_hue_tab[360];
+
+float wafscale_H(int h) {
+	if(!wafscale_init) {
+		wafscale_init  = 1;
+
+		for(int c = 0; c<360; c++)
+			wafscale_hue_tab[c] = 0.25f;
+
+		IplImage * huescaleImg = cvLoadImage("huescale.png");
+		if(huescaleImg) {
+			int pitch = huescaleImg->widthStep;
+			for(int c = 0; c<tmmin(huescaleImg->width, 360); c++) {
+				u8 * pix = (u8 *)huescaleImg->imageData + c*huescaleImg->nChannels + 1;
+				int val = 0;
+				int r = 0;
+				for(r = 0; r<huescaleImg->height && *pix>100; r++, pix+=pitch) {
+
+				}
+				fprintf(stderr, "[wafmeter]::%s:%d : huescale[%d]=%d\n",
+						__func__, __LINE__, c, r);
+
+				// value =
+				// if r = 0 => 1.f
+				// if r = height => 0.f
+				float coef = (float)(huescaleImg->height - r ) / (float)huescaleImg->height;
+				wafscale_hue_tab[c] = coef;
+			}
+		} else {
+			fprintf(stderr, "[wafmeter]::%s:%d : cannot load huescale.png\n", __func__, __LINE__);
+		}
+	}
+
+	return wafscale_hue_tab[h*2];
+}
+
+float wafscale_SV(int s, int v) {
+	if(s < 100) return 0.f; // not saturation = does not count
+
+	if(v < 32) return 0.f; // to dark to have a real color
+
+	float fs = (float)s;
+	float valS = MUNORM( (s - 100.f)/100.f);
+
+	return valS;
 }
 
 int WAFMeter::processHSV() {
@@ -338,6 +510,8 @@ int WAFMeter::processHSV() {
 
 		return -1;
 	}
+
+	bool to_HLS = false;
 
 	// Change to HSV
 	if(m_scaledImage->nChannels < 3) {
@@ -361,7 +535,6 @@ The values are then converted to the destination data type:
 
   */
 
-
 	if(!hsvImage) {
 		hsvImage = tmCreateImage(
 			cvSize(m_scaledImage->width, m_scaledImage->height),
@@ -369,20 +542,31 @@ The values are then converted to the destination data type:
 			m_scaledImage->nChannels);
 	}
 
-	if(m_scaledImage->nChannels == 3) {
-		//cvCvtColor(m_scaledImage, hsvImage, CV_RGB2HSV);
-		cvCvtColor(m_scaledImage, hsvImage, CV_BGR2HSV);
+	if(to_HLS) {
+		cvCvtColor(m_scaledImage, hsvImage, CV_BGR2HLS);
 	} else {
 		cvCvtColor(m_scaledImage, hsvImage, CV_BGR2HSV);
+		//cvCvtColor(m_scaledImage, hsvImage, CV_BGR2Lab);
 	}
 
 	if(!h_plane) h_plane = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
 	if(!s_plane) s_plane = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
-	if(!m_grayImage) { // vplane
+	if(!v_plane) v_plane = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
+	if(!m_grayImage) { // grayscaled
 		m_grayImage = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
 	}
 
-	cvCvtPixToPlane( hsvImage, h_plane, s_plane, m_grayImage, 0 );
+	cvCvtColor(m_scaledImage, m_grayImage, CV_BGR2GRAY);
+
+	// HSV
+	if(!to_HLS) {
+		cvCvtPixToPlane( hsvImage, h_plane, s_plane, v_plane, 0 );
+		// Lab
+//		cvCvtPixToPlane( hsvImage, s_plane, h_plane, v_plane, 0 );
+
+	// HLS
+	} else
+		cvCvtPixToPlane( hsvImage, h_plane, v_plane, s_plane, 0 );
 
 	IplImage * colorWAFImage = NULL;
 	if(g_debug_WAFMeter) {
@@ -418,14 +602,15 @@ The values are then converted to the destination data type:
 			int s = (int)(sline[c]);
 			int v = (int)(vline[c]);
 
+
 			float waf = //(double)v / 255. *
-					tmmax( wafscale(h) *
-						(float)s / 255.f * (float)v/255.f ,
-						0.f// (float)v/255.f
+					( wafscale_H(h) *
+						wafscale_SV(s,v)
+
 						);
 
 			if(//s > 64 && // only the saturated tones
-				v > 64 // and not dark enough to be a noise color artefact
+1 //				v > 64 // and not dark enough to be a noise color artefact
 			) {
 				color_factor += waf;
 				// FIXME : add WAF colors coef

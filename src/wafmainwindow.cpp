@@ -1,8 +1,35 @@
+/***************************************************************************
+ *  wafmeter - Woman Acceptance Factor measurement / Qt GUI class
+ *
+ *  2009-08-10 21:22:13
+ *  Copyright  2007  Christophe Seyve
+ *  Email cseyve@free.fr
+ ****************************************************************************/
+
+/*
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Library General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
+
 #include "wafmainwindow.h"
 #include "ui_wafmainwindow.h"
 #include <QtGui/QFileDialog>
 #include <highgui.h>
 #include "imgutils.h"
+#include <QPainter>
+
+u8 mode_file = 0;
 
 WAFMainWindow::WAFMainWindow(QWidget *parent)
 	: QMainWindow(parent), ui(new Ui::WAFMainWindow)
@@ -353,11 +380,61 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 				ui->imageLabel->height(),
 				Qt::KeepAspectRatio
 				);
-	ui->imageLabel->setPixmap(QPixmap::fromImage(scaledImg));
+	/*
+
+	 QPainter::CompositionMode mode = currentMode();
+
+	 QPainter painter(&resultImage);
+	 painter.setCompositionMode(QPainter::CompositionMode_Source);
+	 painter.fillRect(resultImage.rect(), Qt::transparent);
+	 painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+	 painter.drawImage(0, 0, destinationImage);
+	 painter.setCompositionMode(mode);
+	 painter.drawImage(0, 0, sourceImage);
+	 painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
+	 painter.fillRect(resultImage.rect(), Qt::white);
+	 painter.end();
+
+	 resultLabel->setPixmap(QPixmap::fromImage(resultImage));
+	*/
+	QImage resultImage(scaledImg);
+	resultImage.convertToFormat(QImage::Format_ARGB32);
+
+	QImage decorImage(":icons/Interface-montage.png");
+	decorImage.convertToFormat(QImage::Format_ARGB32);
+
+	//QImage alphaMask = decorImage.createMaskFromColor(qRgb(0,0,0));
+	//decorImage.setAlphaChannel(alphaMask);
+
+	QPainter painter(&decorImage);
+
+	//painter.setCompositionMode(QPainter::CompositionMode_Source);
+	//painter.drawImage(0, 0, decorImage);
+	painter.setCompositionMode(QPainter::CompositionMode_Source);
+	painter.drawImage(0, 0, scaledImg);
+	painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+	painter.drawImage(0, 0, decorImage);
+
+//	painter.drawImage(0, 0, scaledImg);
+//	painter.fillRect(resultImage.rect(), Qt::white);
+
+// 160, 416
+	float theta = 1.3;
+	float r = 130.f;
+
+	painter.setPen(QPen(qRgb(255,0,0)));
+	painter.drawLine(QPoint(160, 416),
+					 QPoint(160+r * cos(theta), 416-r*sin(theta)));
+	painter.end();
+
+	ui->imageLabel->setPixmap(QPixmap::fromImage(resultImage));
 
 	// compute waf
-	m_wafMeter.setImage(iplImage);
-
+	if(mode_file) {
+		m_wafMeter.setUnscaledImage(iplImage);
+	} else {
+		m_wafMeter.setScaledImage(iplImage);
+	}
 	t_waf_info waf = m_wafMeter.getWAF();
 
 	// Display waf
@@ -405,6 +482,6 @@ void WAFMainWindow::on_m_timer_timeout() {
 		return;
 	} else {
 		IplImage * frame = cvRetrieveFrame( capture );
-		computeWAF( frame);
+		computeWAF( frame );
 	}
 }

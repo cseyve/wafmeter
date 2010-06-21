@@ -1,3 +1,26 @@
+/***************************************************************************
+ *  wafmeter - Woman Acceptance Factor measurement / image processing class
+ *
+ *  2009-08-10 21:22:13
+ *  Copyright  2007  Christophe Seyve
+ *  Email cseyve@free.fr
+ ****************************************************************************/
+
+/*
+ *  This program is free software; you can redistribute it and/or modify
+ *  it under the terms of the GNU General Public License as published by
+ *  the Free Software Foundation; either version 3 of the License, or
+ *  (at your option) any later version.
+ *
+ *  This program is distributed in the hope that it will be useful,
+ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *  GNU Library General Public License for more details.
+ *
+ *  You should have received a copy of the GNU General Public License
+ *  along with this program; if not, write to the Free Software
+ *  Foundation, Inc., 59 Temple Place - Suite 330, Boston, MA 02111-1307, USA.
+ */
 
 #include "wafmeter.h"
 #include "imgutils.h"
@@ -7,6 +30,8 @@
 
 
 u8 g_debug_WAFMeter = 1;
+u8 g_mode_realtime = 1;
+
 
 WAFMeter::WAFMeter()
 {
@@ -17,11 +42,11 @@ void WAFMeter::init() {
 	memset(&m_waf_info, 0, sizeof(t_waf_info));
 	memset(&m_details, 0, sizeof(t_waf_info_details));
 	m_originalImage = NULL;
-
+	m_scaledImage_allocated = false;
 	m_scaledImage = m_grayImage = m_HSHistoImage =
 	m_HistoImage = m_ColorHistoImage =
 				   hsvImage = h_plane = s_plane = v_plane = NULL;
-
+	m_process_counter = 0;
 	m_cannyImage = 	NULL;
 }
 WAFMeter::~WAFMeter()
@@ -37,9 +62,22 @@ void WAFMeter::purge(){
 void WAFMeter::purgeScaled() {
 	if(m_scaledImage == m_grayImage) {
 		m_grayImage = NULL;
-	} else {
+	} else if(m_scaledImage_allocated) {
 		tmReleaseImage(&m_grayImage);
 	}
+
+	if(g_debug_WAFMeter) {
+		fprintf(stderr, "WAFMeter::%s:%d : purging scaled images\n",
+				__func__, __LINE__);
+	}
+
+	m_process_counter = 0;
+
+	m_waf_info.waf_factor = 0.f;
+	m_waf_info.color_factor = 0.f;
+	m_waf_info.contour_factor = 0.f;
+
+	memset(&m_details, 0, sizeof(t_waf_info_details));
 
 	tmReleaseImage(&m_cannyImage);
 	tmReleaseImage(&m_scaledImage);
@@ -52,7 +90,17 @@ void WAFMeter::purgeScaled() {
 	tmReleaseImage(&m_ColorHistoImage);
 }
 
-int WAFMeter::setImage(IplImage * img) {
+int WAFMeter::setScaledImage(IplImage * img) {
+	if(!img) {
+		fprintf(stderr, "WAFMeter::%s:%d : no img\n", __func__, __LINE__);
+
+		return -1;
+	}
+
+	return processImage(img);
+}
+
+int WAFMeter::setUnscaledImage(IplImage * img) {
 	if(!img) {
 		fprintf(stderr, "WAFMeter::%s:%d : no img\n", __func__, __LINE__);
 
@@ -61,7 +109,7 @@ int WAFMeter::setImage(IplImage * img) {
 
 	if(m_originalImage) {
 		if(abs(m_originalImage->width - img->width)>=4
-		   || m_originalImage->height
+		   || m_originalImage->height != img->height
 		   ) {
 			purge();
 		}
@@ -72,11 +120,6 @@ int WAFMeter::setImage(IplImage * img) {
 
 		return -1;
 	}
-	m_waf_info.waf_factor = 0.f;
-	m_waf_info.color_factor = 0.f;
-	m_waf_info.contour_factor = 0.f;
-
-	memset(&m_details, 0, sizeof(t_waf_info_details));
 
 #define IMGINFO_WIDTH	400
 #define IMGINFO_HEIGHT	400
@@ -112,10 +155,12 @@ int WAFMeter::setImage(IplImage * img) {
 
 	// Scale original image to smaller image to fasten later processinggs
 	if(!m_scaledImage) {
+		m_scaledImage_allocated = true;
 		m_scaledImage = tmCreateImage(cvSize(sc_w, sc_h),
 								  IPL_DEPTH_8U, m_originalImage->nChannels);
 	}
 
+	// Resize to processing scale
 	cvResize(m_originalImage, m_scaledImage);
 
 	if(g_debug_WAFMeter) {
@@ -126,12 +171,49 @@ int WAFMeter::setImage(IplImage * img) {
 			m_scaledImage->width, m_scaledImage->height);fflush(stderr);
 	}
 
-	// Process color analysis
-	processHSV();
+	return processImage(m_scaledImage);
+}
 
-	m_waf_info.contour_factor = 0.1f;
+int WAFMeter::processImage(IplImage * scaledImage) {
+	if(!scaledImage) { return -1; }
+
+	if((m_scaledImage_allocated
+			&& m_scaledImage != scaledImage)
+		|| !m_scaledImage ) {
+		purgeScaled();
+
+		m_scaledImage_allocated = false;
+		m_scaledImage = scaledImage;
+	}
+
+	// in real-time mode, we do not process every image at every iteration
+	bool do_process_hsv_now = true;
+	bool do_process_canny_now = true;
+	bool do_process_shape_now = true;
+
+	if(g_mode_realtime // only on real time mode
+	   && m_process_counter >= 1 // and if we already have a value for both fields
+	   ) {
+		do_process_hsv_now = ((m_process_counter % 3)==1);
+		do_process_canny_now = ((m_process_counter % 3)==2);
+		do_process_shape_now = ((m_process_counter % 3)==0);
+	}
+	m_process_counter ++;
+
+	// Process color analysis
+	if(do_process_hsv_now) {
+		processHSV();
+	}
+
 	// Process contour/shape analysis
-	processContour();
+	if(do_process_canny_now) {
+		processCanny();
+	}
+
+	// Process contour/shape analysis
+	if(do_process_shape_now) {
+		processContour();
+	}
 
 
 	m_details.mu_color = m_waf_info.color_factor;
@@ -172,6 +254,18 @@ float scalar_vect(CvPoint2D32f v1, CvPoint2D32f v2) {
 	return scalar;
 }
 
+/* Contour/shape analysis */
+int WAFMeter::processCanny() {
+	if(!m_cannyImage) {
+		m_cannyImage = 	tmCreateImage(
+				cvSize(m_scaledImage->width, m_scaledImage->height),
+				IPL_DEPTH_8U,
+				1 );
+	}
+
+	cvCanny(m_grayImage, m_cannyImage, 1500, 500, 5);
+	return 0;
+}
 
 /* Contour/shape analysis */
 int WAFMeter::processContour() {
@@ -181,15 +275,10 @@ int WAFMeter::processContour() {
 		return -1;
 	}
 
-	//
 	if(!m_cannyImage) {
-		m_cannyImage = 	tmCreateImage(
-				cvSize(m_scaledImage->width, m_scaledImage->height),
-				IPL_DEPTH_8U,
-				1 );
+		processCanny();
 	}
 
-	cvCanny(m_grayImage, m_cannyImage, 1500, 500, 5);
 
 	// Study contour shape
 	CvMemStorage* storage = cvCreateMemStorage(0);
@@ -200,8 +289,8 @@ int WAFMeter::processContour() {
 	if(!contours) return -1;
 
 	// comment this out if you do not want approximation
-	//contours = cvApproxPoly( contours, sizeof(CvContour),
-	//						 storage, CV_POLY_APPROX_DP, 3, 1 );
+	contours = cvApproxPoly( contours, sizeof(CvContour),
+							 storage, CV_POLY_APPROX_DP, 3, 1 );
 
 	int levels = 3;
 	CvSeq* _contours = contours;
@@ -476,17 +565,21 @@ float wafscale_H(int h) {
 				for(r = 0; r<huescaleImg->height && *pix>100; r++, pix+=pitch) {
 
 				}
-				fprintf(stderr, "[wafmeter]::%s:%d : huescale[%d]=%d\n",
+				if(g_debug_WAFMeter) {
+					fprintf(stderr, "[wafmeter]::%s:%d : huescale[%d]=%d\n",
 						__func__, __LINE__, c, r);
+				}
 
 				// value =
 				// if r = 0 => 1.f
 				// if r = height => 0.f
-				float coef = (float)(huescaleImg->height - r ) / (float)huescaleImg->height;
+				float coef = (float)(huescaleImg->height - r )
+							 / (float)huescaleImg->height;
 				wafscale_hue_tab[c] = coef;
 			}
+
 		} else {
-			fprintf(stderr, "[wafmeter]::%s:%d : cannot load huescale.png\n", __func__, __LINE__);
+			fprintf(stderr, "[wafmeter]::%s:%d : ERROR : cannot load huescale.png\n", __func__, __LINE__);
 		}
 	}
 
@@ -552,6 +645,7 @@ The values are then converted to the destination data type:
 	if(!h_plane) h_plane = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
 	if(!s_plane) s_plane = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
 	if(!v_plane) v_plane = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
+
 	if(!m_grayImage) { // grayscaled
 		m_grayImage = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
 	}

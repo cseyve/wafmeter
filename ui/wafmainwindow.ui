@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>406</width>
-    <height>789</height>
+    <width>330</width>
+    <height>625</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -45,7 +45,7 @@
       <property name="minimumSize">
        <size>
         <width>322</width>
-        <height>500</height>
+        <height>580</height>
        </size>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -64,8 +64,7 @@
           </sizepolicy>
          </property>
          <property name="styleSheet">
-          <string notr="true">background-color: rgba(0, 0, 0, 255);
-background-image: url(:/icons/bgcolor.png);</string>
+          <string notr="true">background-color: rgba(0, 0, 0, 255);</string>
          </property>
          <property name="text">
           <string/>
@@ -206,7 +205,7 @@ background-image: url(:/icons/bgcolor.png);</string>
             <property name="minimumSize">
              <size>
               <width>32</width>
-              <height>32</height>
+              <height>24</height>
              </size>
             </property>
             <property name="toolTip">
@@ -240,8 +239,8 @@ background-image: url(:/icons/bgcolor.png);</string>
             </property>
             <property name="minimumSize">
              <size>
-              <width>32</width>
-              <height>32</height>
+              <width>24</width>
+              <height>24</height>
              </size>
             </property>
             <property name="toolTip">

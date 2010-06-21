@@ -1,5 +1,5 @@
 <RCC>
-    <qresource prefix="/" >
+    <qresource prefix="/">
         <file>icons/camera-photo.png</file>
         <file>icons/camera-web.png</file>
         <file>icons/image-jpeg.png</file>
@@ -10,5 +10,6 @@
         <file>icons/WAFMeter128.png</file>
         <file>screenshots/iphone.png</file>
         <file>icons/bgcolor.png</file>
+        <file>icons/Interface-montage.png</file>
     </qresource>
 </RCC>

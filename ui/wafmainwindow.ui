@@ -6,16 +6,22 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>330</width>
-    <height>625</height>
+    <width>324</width>
+    <height>476</height>
    </rect>
+  </property>
+  <property name="sizePolicy">
+   <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+    <horstretch>0</horstretch>
+    <verstretch>0</verstretch>
+   </sizepolicy>
   </property>
   <property name="windowTitle">
    <string>WAF Meter</string>
   </property>
   <property name="windowIcon">
    <iconset resource="../WAFmeter.qrc">
-    <normaloff>:/icons/WAFMeter24.png</normaloff>:/icons/WAFMeter24.png</iconset>
+    <normaloff>:/icons/WAFMeter128.png</normaloff>:/icons/WAFMeter128.png</iconset>
   </property>
   <property name="styleSheet">
    <string notr="true"/>
@@ -32,7 +38,7 @@
      <number>1</number>
     </property>
     <property name="margin">
-     <number>4</number>
+     <number>1</number>
     </property>
     <item>
      <widget class="QWidget" name="iphoneScreenWidget" native="true">
@@ -45,7 +51,7 @@
       <property name="minimumSize">
        <size>
         <width>322</width>
-        <height>580</height>
+        <height>474</height>
        </size>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -58,19 +64,19 @@
        <item>
         <widget class="QLabel" name="imageLabel">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
          </property>
          <property name="styleSheet">
-          <string notr="true">background-color: rgba(0, 0, 0, 255);</string>
+          <string notr="true">background-color: rgba(0,0,0,255);</string>
          </property>
          <property name="text">
           <string/>
          </property>
          <property name="pixmap">
-          <pixmap resource="../WAFmeter.qrc">:/icons/WAFMeter128.png</pixmap>
+          <pixmap resource="../WAFmeter.qrc">:/icons/Interface-montage.png</pixmap>
          </property>
          <property name="scaledContents">
           <bool>false</bool>
@@ -78,108 +84,6 @@
          <property name="alignment">
           <set>Qt::AlignCenter</set>
          </property>
-        </widget>
-       </item>
-       <item>
-        <widget class="QWidget" name="wafWidget" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <property name="styleSheet">
-          <string notr="true"/>
-         </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_4">
-          <item>
-           <widget class="QLabel" name="label_3">
-            <property name="text">
-             <string>WAF</string>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QProgressBar" name="wafProgressBar">
-            <property name="styleSheet">
-             <string notr="true"/>
-            </property>
-            <property name="value">
-             <number>100</number>
-            </property>
-            <property name="format">
-             <string/>
-            </property>
-           </widget>
-          </item>
-         </layout>
-        </widget>
-       </item>
-       <item>
-        <widget class="QWidget" name="widget" native="true">
-         <property name="sizePolicy">
-          <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-           <horstretch>0</horstretch>
-           <verstretch>0</verstretch>
-          </sizepolicy>
-         </property>
-         <layout class="QHBoxLayout" name="horizontalLayout_2">
-          <property name="spacing">
-           <number>2</number>
-          </property>
-          <property name="margin">
-           <number>0</number>
-          </property>
-          <item>
-           <widget class="QLabel" name="label">
-            <property name="text">
-             <string>Color</string>
-            </property>
-            <property name="alignment">
-             <set>Qt::AlignRight|Qt::AlignTrailing|Qt::AlignVCenter</set>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QDial" name="colorProgressBar">
-            <property name="maximumSize">
-             <size>
-              <width>50</width>
-              <height>50</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color: rgb(255, 0, 230);</string>
-            </property>
-            <property name="tracking">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QDial" name="contourProgressBar">
-            <property name="maximumSize">
-             <size>
-              <width>50</width>
-              <height>50</height>
-             </size>
-            </property>
-            <property name="styleSheet">
-             <string notr="true">background-color: rgb(255, 0, 230);</string>
-            </property>
-            <property name="tracking">
-             <bool>false</bool>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLabel" name="label_2">
-            <property name="text">
-             <string>Shape</string>
-            </property>
-           </widget>
-          </item>
-         </layout>
         </widget>
        </item>
        <item>
@@ -191,13 +95,16 @@
           </size>
          </property>
          <layout class="QHBoxLayout" name="horizontalLayout_3">
+          <property name="spacing">
+           <number>2</number>
+          </property>
           <property name="margin">
-           <number>0</number>
+           <number>1</number>
           </property>
           <item>
            <widget class="QPushButton" name="camButton">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -230,9 +137,22 @@
            </widget>
           </item>
           <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
            <widget class="QPushButton" name="fileButton">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -275,15 +195,6 @@
     </item>
    </layout>
   </widget>
-  <widget class="QToolBar" name="mainToolBar">
-   <attribute name="toolBarArea">
-    <enum>TopToolBarArea</enum>
-   </attribute>
-   <attribute name="toolBarBreak">
-    <bool>false</bool>
-   </attribute>
-  </widget>
-  <widget class="QStatusBar" name="statusBar"/>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
  <resources>

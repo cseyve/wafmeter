@@ -70,7 +70,8 @@ void WAFMainWindow::on_fileButton_pressed() {
 	// load file
 	IplImage * iplImage = cvLoadImage(fileName.ascii());
 	computeWAF(iplImage);
-	cvReleaseImage(&iplImage);
+
+	tmReleaseImage(&iplImage);
 }
 
 
@@ -397,37 +398,34 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 
 	 resultLabel->setPixmap(QPixmap::fromImage(resultImage));
 	*/
-	QImage resultImage(scaledImg);
-	resultImage.convertToFormat(QImage::Format_ARGB32);
-
 	QImage decorImage(":icons/Interface-montage.png");
-	decorImage.convertToFormat(QImage::Format_ARGB32);
+	QImage resultImage(ui->imageLabel->width(),
+					   ui->imageLabel->height(),
+					   QImage::Format_ARGB32_Premultiplied);
+
+	QPainter painter(&resultImage);
+	decorImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+
+	QImage destinationImage = decorImage;
+	QImage sourceImage = scaledImg;
+	//QImage sourceImage = decorImage;
+	//QImage destinationImage = scaledImg;
 
 	//QImage alphaMask = decorImage.createMaskFromColor(qRgb(0,0,0));
 	//decorImage.setAlphaChannel(alphaMask);
-
-	QPainter painter(&decorImage);
-
-	//painter.setCompositionMode(QPainter::CompositionMode_Source);
-	//painter.drawImage(0, 0, decorImage);
 	painter.setCompositionMode(QPainter::CompositionMode_Source);
-	painter.drawImage(0, 0, scaledImg);
+	painter.fillRect(resultImage.rect(), Qt::transparent);
+	painter.setCompositionMode(QPainter::CompositionMode_Source);
+	painter.fillRect(resultImage.rect(), Qt::white);
+	painter.drawImage(0, 0, sourceImage);
 	painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-	painter.drawImage(0, 0, decorImage);
+	painter.drawImage(0, 0, destinationImage);
+	painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
+	//painter.fillRect(resultImage.rect(), Qt::white);
 
-//	painter.drawImage(0, 0, scaledImg);
-//	painter.fillRect(resultImage.rect(), Qt::white);
+	painter.setCompositionMode(QPainter::CompositionMode_Source);
 
 // 160, 416
-	float theta = 1.3;
-	float r = 130.f;
-
-	painter.setPen(QPen(qRgb(255,0,0)));
-	painter.drawLine(QPoint(160, 416),
-					 QPoint(160+r * cos(theta), 416-r*sin(theta)));
-	painter.end();
-
-	ui->imageLabel->setPixmap(QPixmap::fromImage(resultImage));
 
 	// compute waf
 	if(mode_file) {
@@ -438,10 +436,65 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 	t_waf_info waf = m_wafMeter.getWAF();
 
 	// Display waf
-	ui->wafProgressBar->setValue(100.f * waf.waf_factor);
-	ui->colorProgressBar->setValue(100.f * waf.color_factor);
-	ui->contourProgressBar->setValue(100.f * waf.contour_factor);
-/*
+//	ui->wafProgressBar->setValue(100.f * waf.waf_factor);
+//	ui->colorProgressBar->setValue(100.f * waf.color_factor);
+//	ui->contourProgressBar->setValue(100.f * waf.contour_factor);
+
+	float theta_min = 0.05;
+	float theta = (3.1415927-2*theta_min) * (1. - waf.waf_factor) + theta_min;
+	float r = 130.f;
+
+
+	QPen pen(qRgb(255,0,0));
+	pen.setWidth(2);
+	pen.setCapStyle(Qt::RoundCap);
+
+	// Draw main result first, to draw smaller dial over it
+	pen.setColor(qRgb(0,0,0));
+	pen.setWidth(5);
+	painter.setPen(pen);
+	r = 140;
+	theta = (3.1415927-2*theta_min) * (1. - waf.waf_factor) + theta_min;
+	painter.drawLine(QPoint(160, 416),
+					 QPoint(160+r * cos(theta), 416-r*sin(theta)));
+	r = 125;
+
+	// draw shape with gray
+	pen.setColor(qRgb(214,214,214));
+	pen.setWidth(3);
+	painter.setPen(pen);
+	r = 120;
+	theta = (3.1415927-2*theta_min) * (1. - waf.contour_factor) + theta_min;
+	painter.drawLine(QPoint(160, 416),
+					 QPoint(160+r * cos(theta), 416-r*sin(theta)));
+
+	// draw color with green
+	pen.setColor(qRgb(127,255,0));
+	r = 120;
+	theta = (3.1415927-2*theta_min) * (1. - waf.color_factor) + theta_min;
+	pen.setWidth(3);
+	painter.setPen(pen);
+	painter.drawLine(QPoint(160, 416),
+					 QPoint(160+r * cos(theta), 416-r*sin(theta)));
+	r = 100;
+	pen.setWidth(6);
+	painter.setPen(pen);
+	painter.drawEllipse(QPoint(160+r * cos(theta), 416-r*sin(theta)), 3, 3);
+
+
+
+	pen.setWidth(16);
+	pen.setColor(qRgb(127,127,127));
+	painter.setPen(pen);
+	painter.drawEllipse(QPoint(160+2, 416-1), 8,8);
+	pen.setColor(qRgb(0,0,0));
+	painter.setPen(pen);
+	painter.drawEllipse(QPoint(160, 416), 8,8);
+
+
+	ui->imageLabel->setPixmap(QPixmap::fromImage(resultImage));
+
+	/*
 	QString dialname=":/icons/Dialer.png";
 	QImage pixmap(dialname);
 	pixmap = pixmap.convertToFormat(QImage::Format_Indexed8);

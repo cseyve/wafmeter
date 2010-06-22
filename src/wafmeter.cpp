@@ -29,7 +29,7 @@
 #define MUNORM(a) (((a)<0.f) ? 0.f : ( ((a)>1.f) ? 1.f : (a)))
 
 
-u8 g_debug_WAFMeter = 1;
+u8 g_debug_WAFMeter = 0;
 u8 g_mode_realtime = 1;
 
 
@@ -60,10 +60,12 @@ void WAFMeter::purge(){
 }
 
 void WAFMeter::purgeScaled() {
-	if(m_scaledImage == m_grayImage) {
-		m_grayImage = NULL;
-	} else if(m_scaledImage_allocated) {
-		tmReleaseImage(&m_grayImage);
+	if(m_scaledImage) {
+		if(m_scaledImage == m_grayImage) {
+			m_scaledImage = NULL;
+		} else if(m_scaledImage_allocated) {
+			tmReleaseImage(&m_scaledImage);
+		}
 	}
 
 	if(g_debug_WAFMeter) {
@@ -224,12 +226,15 @@ int WAFMeter::processImage(IplImage * scaledImage) {
 			// ( (m_waf_info.contour_factor )*( m_waf_info.color_factor ));
 			// Quadratic mean :
 			sqrtf(
-					(m_waf_info.contour_factor )*( m_waf_info.contour_factor )
-					+ (m_waf_info.color_factor )*( m_waf_info.color_factor ))
+					(double)(m_waf_info.contour_factor )*(double)( m_waf_info.contour_factor )
+					+ (double)(m_waf_info.color_factor )*(double)( m_waf_info.color_factor ))
 			//1.f -
 			//(1.f - m_waf_info.contour_factor )
 			//	* (1.f - m_waf_info.color_factor)
 			;
+	m_waf_info.waf_factor = sqrtf(m_waf_info.contour_factor )
+					* sqrtf(m_waf_info.color_factor);
+//	m_waf_info.waf_factor = (m_waf_info.contour_factor +m_waf_info.color_factor )*0.5f;
 	// ok, we're done
 	return 0;
 }
@@ -289,8 +294,8 @@ int WAFMeter::processContour() {
 	if(!contours) return -1;
 
 	// comment this out if you do not want approximation
-	contours = cvApproxPoly( contours, sizeof(CvContour),
-							 storage, CV_POLY_APPROX_DP, 3, 1 );
+//	contours = cvApproxPoly( contours, sizeof(CvContour),
+//							 storage, CV_POLY_APPROX_DP, 3, 1 );
 
 	int levels = 3;
 	CvSeq* _contours = contours;

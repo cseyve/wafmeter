@@ -27,13 +27,64 @@
 
 #include <QtCore/QTimer>
 #include <QtGui/QMainWindow>
+#include <QThread>
+
 #include "wafmeter.h"
+
+// For capture pointer
+#include <highgui.h>
 
 namespace Ui
 {
     class WAFMainWindow;
 }
 
+/** @brief Background acquisition and processing thread
+  */
+class WAFMeterThread : public QThread
+{
+	Q_OBJECT
+
+public:
+	WAFMeterThread(WAFMeter * pWAFmeter);
+	~WAFMeterThread();
+
+	/** @brief Set the acquisition source */
+	void setCapture(CvCapture * capture);
+
+	/** @brief Return image associated with WAF measure */
+	t_waf_info getWAF() { return m_waf; };
+
+	/** @brief Return image associated with WAF measure */
+	IplImage * getInputImage() { return m_inputImage; };
+
+	/** @brief Tell the thread to stop */
+	void stop();
+
+	/** @brief Return iteration count */
+	int getIteration() { return m_iteration; };
+
+	/** @brief Thread loop */
+	virtual void run();
+private:
+	/// Iteration counter
+	int m_iteration;
+
+	/// Flag to let the thread loop run
+	bool m_run;
+
+	/// Status flag of the running state of thread
+	bool m_isRunning;
+
+	WAFMeter * m_pWAFmeter;
+	t_waf_info m_waf;
+
+	IplImage * m_inputImage;
+	CvCapture * m_capture;
+};
+
+/** @brief Main WAFmeter window
+  */
 class WAFMainWindow : public QMainWindow
 {
     Q_OBJECT
@@ -47,13 +98,23 @@ private:
 	QString m_path;
 
 	QTimer m_timer;
+	WAFMeterThread * m_pWAFMeterThread;
+	int m_lastIteration;
+
 	WAFMeter m_wafMeter;
 	/** @brief Compute WAF and display result */
 	void computeWAF(IplImage *);
 
+	/** @brief Compute WAF and display result */
+	void displayWAFMeasure(t_waf_info waf, IplImage * iplImage);
+
+	/** @brief Start background thread for capture source */
+	void startBackgroundThread();
+
 private slots:
 	void on_fileButton_pressed();
 	void on_camButton_toggled(bool checked);
+	void on_movieButton_toggled(bool checked);
 	void on_m_timer_timeout();
 };
 

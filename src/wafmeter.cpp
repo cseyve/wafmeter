@@ -49,10 +49,12 @@ void WAFMeter::init() {
 	m_process_counter = 0;
 	m_cannyImage = 	NULL;
 }
+
 WAFMeter::~WAFMeter()
 {
 	purge();
 }
+
 void WAFMeter::purge(){
 	tmReleaseImage(&m_originalImage);
 	tmReleaseImage(&m_HistoImage); // Delete only at the end, because it's always the same size
@@ -635,16 +637,27 @@ The values are then converted to the destination data type:
 
 	if(!hsvImage) {
 		hsvImage = tmCreateImage(
-			cvSize(m_scaledImage->width, m_scaledImage->height),
-			IPL_DEPTH_8U,
-			m_scaledImage->nChannels);
+				cvGetSize(m_scaledImage),
+				IPL_DEPTH_8U,
+				3); //m_scaledImage->nChannels);
+	} else {
+
+	}
+	IplImage * bgrImage = m_scaledImage;
+	if(m_scaledImage->nChannels == 4) {
+		bgrImage = tmCreateImage(cvGetSize(m_scaledImage), IPL_DEPTH_8U, 1);
+		cvCvtColor(m_scaledImage, bgrImage, CV_BGRA2BGR);
 	}
 
 	if(to_HLS) {
-		cvCvtColor(m_scaledImage, hsvImage, CV_BGR2HLS);
+		cvCvtColor(bgrImage, hsvImage, CV_BGR2HLS);
 	} else {
-		cvCvtColor(m_scaledImage, hsvImage, CV_BGR2HSV);
+		cvCvtColor(bgrImage, hsvImage, CV_BGR2HSV);
 		//cvCvtColor(m_scaledImage, hsvImage, CV_BGR2Lab);
+	}
+
+	if(bgrImage != m_scaledImage) {
+		tmReleaseImage(&bgrImage);
 	}
 
 	if(!h_plane) h_plane = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
@@ -673,7 +686,6 @@ The values are then converted to the destination data type:
 		tmSaveImage(TMP_DIRECTORY "SImage.pgm", s_plane);
 		tmSaveImage(TMP_DIRECTORY "VImage.pgm", m_grayImage);
 	}
-
 
 	// save image for debug
 	if(g_debug_WAFMeter) {

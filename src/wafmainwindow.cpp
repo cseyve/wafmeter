@@ -25,7 +25,6 @@
 #include "wafmainwindow.h"
 #include "ui_wafmainwindow.h"
 #include <QtGui/QFileDialog>
-#include <highgui.h>
 #include "imgutils.h"
 #include <QPainter>
 
@@ -41,6 +40,8 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 	m_path = QString(home);
 	ui->setupUi(this);
 
+	m_pWAFMeterThread = NULL;
+
 	QString filename=":/qss/WAFMeter.qss";
 	QFile file(filename);
 	file.open(QFile::ReadOnly);
@@ -55,6 +56,8 @@ WAFMainWindow::~WAFMainWindow()
 {
 	delete ui;
 }
+
+
 
 void WAFMainWindow::on_fileButton_pressed() {
 	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
@@ -73,6 +76,7 @@ void WAFMainWindow::on_fileButton_pressed() {
 
 	tmReleaseImage(&iplImage);
 }
+
 
 
 typedef uint32_t u32;
@@ -374,6 +378,24 @@ QImage iplImageToQImage(IplImage * iplImage) {
 void WAFMainWindow::computeWAF(IplImage * iplImage) {
 	if(!iplImage) return;
 
+
+	// compute waf
+	if(mode_file) {
+		m_wafMeter.setUnscaledImage(iplImage);
+	} else {
+		m_wafMeter.setScaledImage(iplImage);
+	}
+	t_waf_info waf = m_wafMeter.getWAF();
+
+	// Display images
+	displayWAFMeasure(waf, iplImage);
+}
+
+void WAFMainWindow::displayWAFMeasure(t_waf_info waf, IplImage * iplImage)
+{
+	// Display
+	if(!iplImage) return;
+
 	// load image to display
 	QImage qtImage = iplImageToQImage(iplImage);
 	QImage scaledImg = qtImage.scaled(
@@ -417,7 +439,8 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 	painter.fillRect(resultImage.rect(), Qt::transparent);
 	painter.setCompositionMode(QPainter::CompositionMode_Source);
 	painter.fillRect(resultImage.rect(), Qt::white);
-	painter.drawImage(0, 0, sourceImage);
+	painter.drawImage((resultImage.width() - sourceImage.width())/2,
+					  0, sourceImage);
 	painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
 	painter.drawImage(0, 0, destinationImage);
 	painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
@@ -425,15 +448,6 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 
 	painter.setCompositionMode(QPainter::CompositionMode_Source);
 
-// 160, 416
-
-	// compute waf
-	if(mode_file) {
-		m_wafMeter.setUnscaledImage(iplImage);
-	} else {
-		m_wafMeter.setScaledImage(iplImage);
-	}
-	t_waf_info waf = m_wafMeter.getWAF();
 
 	// Display waf
 //	ui->wafProgressBar->setValue(100.f * waf.waf_factor);
@@ -444,13 +458,14 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 	float theta = (3.1415927-2*theta_min) * (1. - waf.waf_factor) + theta_min;
 	float r = 130.f;
 
-
+	// Center of background image : 160, 416
 	QPen pen(qRgb(255,0,0));
 	pen.setWidth(2);
 	pen.setCapStyle(Qt::RoundCap);
 
 	// Draw main result first, to draw smaller dial over it
 	pen.setColor(qRgb(0,0,0));
+	pen.setColor(qRgba(10,10,10, 32));
 	pen.setWidth(5);
 	painter.setPen(pen);
 	r = 140;
@@ -487,7 +502,7 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 	pen.setColor(qRgb(127,127,127));
 	painter.setPen(pen);
 	painter.drawEllipse(QPoint(160+2, 416-1), 8,8);
-	pen.setColor(qRgb(0,0,0));
+	pen.setColor(qRgba(10,10,10, 128));
 	painter.setPen(pen);
 	painter.drawEllipse(QPoint(160, 416), 8,8);
 
@@ -514,27 +529,180 @@ void WAFMainWindow::on_camButton_toggled(bool checked)
 	if(!checked) {
 		if(m_timer.isActive())
 			m_timer.stop();
+		// Stop thread
+		if(m_pWAFMeterThread) {
+			m_pWAFMeterThread->stop();
+			m_pWAFMeterThread->setCapture(NULL);
+		}
+		cvReleaseCapture(&capture);
+		capture = NULL;
+
 		return;
 	}
 
 	if(!capture) {
-		capture = cvCaptureFromCAM( NULL );
+		int camindex = 0;
+		do {
+			capture = cvCaptureFromCAM( camindex );
+			camindex++;
+		} while(!capture && camindex<5);
 		fprintf(stderr, "%s:%d : capture=%p\n", __func__, __LINE__, capture);
 	}
 	if(!capture) { return ; }
 
-	if(!m_timer.isActive()) {
-		m_timer.start(100);
+	startBackgroundThread();
+}
+
+void WAFMainWindow::on_movieButton_toggled(bool checked)
+{
+	if(!checked) {
+		if(m_timer.isActive())
+			m_timer.stop();
+
+		// Stop thread
+		if(m_pWAFMeterThread) {
+			m_pWAFMeterThread->stop();
+			m_pWAFMeterThread->setCapture(NULL);
+		}
+		cvReleaseCapture(&capture);
+		capture = NULL;
+
+		return;
+	}
+
+	if(!capture) {
+		QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
+							 m_path,
+							 tr("Movies (*.avi *.mp* *.mov)"));
+		if(fileName.isEmpty()) return;
+
+		QFileInfo fi(fileName);
+		if(!fi.exists()) return;
+
+		m_path = fi.absolutePath();
+
+		capture = cvCaptureFromFile( fi.absoluteFilePath().toUtf8().data() );
+
+		fprintf(stderr, "%s:%d : capture=%p\n", __func__, __LINE__, capture);
+		startBackgroundThread();
 	}
 }
 
+void WAFMainWindow::startBackgroundThread() {
+
+	if(!capture) { return ; }
+
+	if(!m_pWAFMeterThread) {
+		m_pWAFMeterThread = new WAFMeterThread(&m_wafMeter);
+	}
+
+	m_pWAFMeterThread->setCapture(capture);
+	m_pWAFMeterThread->start();
+
+	if(!m_timer.isActive()) {
+		m_timer.start(100);
+	}
+
+}
+
 void WAFMainWindow::on_m_timer_timeout() {
-	// Grab image
-	if( !cvGrabFrame( capture ) ) {
-		fprintf(stderr, "%s:%d : capture=%p FAILED\n", __func__, __LINE__, capture);
+	if(!capture) {
+		m_timer.stop();
 		return;
+	}
+	if(!m_pWAFMeterThread) {
+		m_timer.stop();
+		return;
+	}
+
+	// Grab image
+	int cur_iteration = m_pWAFMeterThread->getIteration();
+	if(m_lastIteration != cur_iteration) {
+		m_lastIteration = cur_iteration;
+		// Display image
+		displayWAFMeasure(m_pWAFMeterThread->getWAF(), m_pWAFMeterThread->getInputImage());
 	} else {
-		IplImage * frame = cvRetrieveFrame( capture );
-		computeWAF( frame );
+		//
+		fprintf(stderr, "%s:%d no fast enough\n", __func__, __LINE__);
 	}
 }
+
+
+
+
+
+/**************************************************************************
+
+					BACKGROUND ANALYSIS THREAD
+
+**************************************************************************/
+WAFMeterThread::WAFMeterThread(WAFMeter * pWAFmeter) {
+	m_isRunning = m_run = false;
+	m_pWAFmeter = pWAFmeter;
+	m_inputImage = NULL;
+	m_iteration = 0;
+	memset(&m_waf, 0, sizeof(t_waf_info));
+}
+
+WAFMeterThread::~WAFMeterThread() {
+	stop();
+	tmReleaseImage(&m_inputImage);
+}
+
+void WAFMeterThread::setCapture(CvCapture * capture) {
+	m_capture = capture;
+}
+
+/* Tell the thread to stop */
+void WAFMeterThread::stop() {
+	m_run = false;
+	while(m_isRunning) {
+		sleep(1);
+	}
+}
+
+/* Thread loop */
+void WAFMeterThread::run()
+{
+	m_isRunning = m_run = true;
+
+	while(m_run) {
+		if(m_capture && m_pWAFmeter) {
+			if( !cvGrabFrame( m_capture ) ) {
+				fprintf(stderr, "%s:%d : capture=%p FAILED\n", __func__, __LINE__, capture);
+
+			} else {
+				// fprintf(stderr, "%s:%d : capture=%p ok, iteration=%d\n",
+				//		__func__, __LINE__, m_capture, m_iteration);
+				IplImage * frame = cvRetrieveFrame( m_capture );
+
+				m_pWAFmeter->setUnscaledImage(frame);
+				m_waf = m_pWAFmeter->getWAF();
+				m_iteration++;
+
+				// copy image
+				// Check if size changed
+				if(m_inputImage &&
+				   (m_inputImage->width != frame->width
+					|| m_inputImage->height != frame->height)) {
+					tmReleaseImage(&m_inputImage);
+				}
+
+				if(!m_inputImage) {
+					m_inputImage = tmCreateImage(cvGetSize(frame), IPL_DEPTH_8U, frame->nChannels);
+					fprintf(stderr, "%s:%d : capture=%p "
+							"=> realloc img %dx%dx%d\n", __func__, __LINE__,
+							capture,
+							frame->width, frame->height, frame->nChannels);
+				}
+				cvCopy(frame, m_inputImage);
+			}
+		} else {
+			sleep(1);
+		}
+	}
+
+	m_isRunning = false;
+}
+
+

@@ -11,5 +11,7 @@
         <file>screenshots/iphone.png</file>
         <file>icons/bgcolor.png</file>
         <file>icons/Interface-montage.png</file>
+        <file>icons/Interface-montage-splash.png</file>
+        <file>icons/media-playback-start.png</file>
     </qresource>
 </RCC>

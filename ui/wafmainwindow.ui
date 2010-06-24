@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>324</width>
-    <height>476</height>
+    <height>452</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -51,7 +51,7 @@
       <property name="minimumSize">
        <size>
         <width>322</width>
-        <height>474</height>
+        <height>450</height>
        </size>
       </property>
       <layout class="QVBoxLayout" name="verticalLayout_2">
@@ -125,12 +125,6 @@
              <iconset resource="../WAFmeter.qrc">
               <normaloff>:/icons/camera-web.png</normaloff>:/icons/camera-web.png</iconset>
             </property>
-            <property name="iconSize">
-             <size>
-              <width>48</width>
-              <height>48</height>
-             </size>
-            </property>
             <property name="checkable">
              <bool>true</bool>
             </property>
@@ -163,29 +157,10 @@
              <iconset resource="../WAFmeter.qrc">
               <normaloff>:/icons/media-playback-start.png</normaloff>:/icons/media-playback-start.png</iconset>
             </property>
-            <property name="iconSize">
-             <size>
-              <width>32</width>
-              <height>32</height>
-             </size>
-            </property>
             <property name="checkable">
              <bool>true</bool>
             </property>
            </widget>
-          </item>
-          <item>
-           <spacer name="horizontalSpacer">
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-            <property name="sizeHint" stdset="0">
-             <size>
-              <width>40</width>
-              <height>20</height>
-             </size>
-            </property>
-           </spacer>
           </item>
           <item>
            <widget class="QPushButton" name="fileButton">
@@ -214,14 +189,35 @@
              <iconset resource="../WAFmeter.qrc">
               <normaloff>:/icons/image-jpeg.png</normaloff>:/icons/image-jpeg.png</iconset>
             </property>
-            <property name="iconSize">
-             <size>
-              <width>48</width>
-              <height>48</height>
-             </size>
-            </property>
             <property name="shortcut">
              <string>Ctrl+O</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <spacer name="horizontalSpacer">
+            <property name="orientation">
+             <enum>Qt::Horizontal</enum>
+            </property>
+            <property name="sizeHint" stdset="0">
+             <size>
+              <width>40</width>
+              <height>20</height>
+             </size>
+            </property>
+           </spacer>
+          </item>
+          <item>
+           <widget class="QPushButton" name="snapButton">
+            <property name="toolTip">
+             <string>Save snapshot in your Desktop directory</string>
+            </property>
+            <property name="text">
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="../WAFmeter.qrc">
+              <normaloff>:/icons/camera-photo.png</normaloff>:/icons/camera-photo.png</iconset>
             </property>
            </widget>
           </item>

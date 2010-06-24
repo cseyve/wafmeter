@@ -7,7 +7,6 @@ DEFINES += QT3_SUPPORT
 
 include(opencv.pri)
 
-QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
 linux-g++:TMAKE_CXXFLAGS += -Wall \
     -g \
     -O2 \
@@ -20,9 +19,12 @@ linux-g++:TMAKE_CXXFLAGS += -Wall \
     -Wuninitialized \
     -Wparentheses \
     -Wpointer-arith
-ICON = icons/WAFMeter128.icns
-QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
-macx::message("MacOS X specific options =================================================")
+
+macx: {
+    message("MacOS X specific options =================================================")
+    ICON = icons/WAFMeter128.png
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
+}
 
 # TARGET = $$join(TARGET,,,_debug)
 # DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
@@ -66,5 +68,4 @@ message( " libs : $$LIBS ")
 message( "FINAL CONFIGURATION ================================================== ")
 message( "")
 message( "")
-OTHER_FILES += qss/WAFMeter.qss \
-    qss/WAFMeter.qss
+OTHER_FILES += qss/WAFMeter.qss

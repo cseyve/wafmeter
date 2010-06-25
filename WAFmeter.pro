@@ -6,7 +6,10 @@ TARGET = WAFmeter
 include(opencv.pri)
 
 TEMPLATE = app
-DEFINES += QT3_SUPPORT
+#DEFINES += QT3_SUPPORT
+CONFIG += qt \
+    warn_on \
+    debug_and_release
 
 linux-g++:TMAKE_CXXFLAGS += -Wall \
     -g \
@@ -23,8 +26,8 @@ linux-g++:TMAKE_CXXFLAGS += -Wall \
 
 macx: {
     message("MacOS X specific options =================================================")
-    ICON = icons/WAFMeter128.png
-    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.4
+    ICON = icons/WAFMeter128.icns
+    QMAKE_MACOSX_DEPLOYMENT_TARGET = 10.6
 }
 
 # TARGET = $$join(TARGET,,,_debug)
@@ -37,10 +40,7 @@ linux-g++ {
 win32:TARGET = $$join(TARGET,,d)
 
 # }
-CONFIG += qt \
-    warn_on \
-    build_all \
-    release
+
 SOURCES += src/main.cpp \
     src/wafmainwindow.cpp \
     src/wafmeter.cpp \

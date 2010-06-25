@@ -56,6 +56,10 @@ typedef struct {
 } t_waf_info_details;
 
 
+/** @brief Set global hue waf scale from image */
+void setWafHueScale(IplImage * huescaleImg);
+
+
 /** @brief WAF factor measuring by image processing
 
 

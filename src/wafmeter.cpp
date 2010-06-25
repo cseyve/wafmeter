@@ -30,7 +30,7 @@
 
 
 u8 g_debug_WAFMeter = 0;
-u8 g_mode_realtime = 1;
+u8 g_mode_realtime = 0;
 
 
 WAFMeter::WAFMeter()
@@ -83,8 +83,9 @@ void WAFMeter::purgeScaled() {
 
 	memset(&m_details, 0, sizeof(t_waf_info_details));
 
-	tmReleaseImage(&m_cannyImage);
-	tmReleaseImage(&m_scaledImage);
+        tmReleaseImage(&m_grayImage);
+        tmReleaseImage(&m_cannyImage);
+        tmReleaseImage(&m_scaledImage);
 	tmReleaseImage(&m_HSHistoImage);
 	tmReleaseImage(&m_HistoImage);
 	tmReleaseImage(&hsvImage);
@@ -556,6 +557,38 @@ int WAFMeter::processContour() {
 static u8 wafscale_init = 0;
 static float wafscale_hue_tab[360];
 
+void setWafHueScale(IplImage * huescaleImg) {
+    if(!huescaleImg) { return; }
+
+    wafscale_init  = 1;
+
+    for(int c = 0; c<360; c++)
+        wafscale_hue_tab[c] = 0.25f;
+
+    int pitch = huescaleImg->widthStep;
+    for(int c = 0; c<tmmin(huescaleImg->width, 360); c++) {
+            u8 * pix = (u8 *)huescaleImg->imageData + c*huescaleImg->nChannels + 1;
+            int val = 0;
+            int r = 0;
+            for(r = 0; r<huescaleImg->height && *pix>100; r++, pix+=pitch) {
+
+            }
+
+            // value =
+            // if r = 0 => 1.f
+            // if r = height => 0.f
+            float coef = (float)(huescaleImg->height - r )
+                                     / (float)huescaleImg->height;
+            wafscale_hue_tab[c] = coef;
+
+            if(g_debug_WAFMeter) {
+                    fprintf(stderr, "[wafmeter]::%s:%d : huescale[%d]=%d => %g\n",
+                            __func__, __LINE__, c, r, coef);
+            }
+    }
+
+}
+
 float wafscale_H(int h) {
 	if(!wafscale_init) {
 		wafscale_init  = 1;
@@ -652,19 +685,35 @@ The values are then converted to the destination data type:
             rgbImage = tmCreateImage(cvGetSize(m_scaledImage), IPL_DEPTH_8U, 3);
             // bad on macOSX:		cvCvtColor(m_scaledImage, bgrImage, CV_BGRA2BGR);
             cvCvtColor(m_scaledImage, rgbImage, CV_BGRA2BGR);
-	}
+            fprintf(stderr, "WAFMeter::%s:%d : converted to RGB\n", __func__, __LINE__);
+        }
 
 	if(to_HLS) {
+            if(g_debug_WAFMeter) {
+                fprintf(stderr, "WAFMeter::%s:%d : convert RGB %dx%dx%d-> HLS %dx%dx%d\n",
+                        __func__, __LINE__,
+                        rgbImage->width, rgbImage->height, rgbImage->nChannels,
+                        hsvImage->width, hsvImage->height, hsvImage->nChannels
+                        );
+            }
             if(m_scaledImage->nChannels != 4) {
-                cvCvtColor(rgbImage, hsvImage, CV_BGR2HLS);
+
+                cvCvtColor(m_scaledImage, hsvImage, CV_BGR2HLS);
             } else {
-                cvCvtColor(rgbImage, hsvImage, CV_RGB2HLS);
+                cvCvtColor(rgbImage, hsvImage, CV_BGR2HLS);
             }
 	} else {
+            if(g_debug_WAFMeter) {
+                fprintf(stderr, "WAFMeter::%s:%d : convert RGB %dx%dx%d-> HSV %dx%dx%d\n",
+                        __func__, __LINE__,
+                        rgbImage->width, rgbImage->height, rgbImage->nChannels,
+                        hsvImage->width, hsvImage->height, hsvImage->nChannels
+                        );
+            }
             if(m_scaledImage->nChannels != 4) {
-                cvCvtColor(rgbImage, hsvImage, CV_BGR2HSV);
+                cvCvtColor(m_scaledImage, hsvImage, CV_BGR2HSV);
             } else {
-                cvCvtColor(rgbImage, hsvImage, CV_RGB2HSV);
+                cvCvtColor(rgbImage, hsvImage, CV_BGR2HSV);
             }
 
             //cvCvtColor(m_scaledImage, hsvImage, CV_BGR2Lab);
@@ -682,7 +731,25 @@ The values are then converted to the destination data type:
 		m_grayImage = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );
 	}
 
-	cvCvtColor(m_scaledImage, m_grayImage, CV_BGR2GRAY);
+        if(m_scaledImage->nChannels != 4) {
+            if(g_debug_WAFMeter) {
+                fprintf(stderr, "WAFMeter::%s:%d : convert BGR %dx%dx%d-> gray %dx%dx%d\n",
+                        __func__, __LINE__,
+                        m_scaledImage->width, m_scaledImage->height, m_scaledImage->nChannels,
+                        m_grayImage->width, m_grayImage->height, m_grayImage->nChannels
+                        );
+            }
+            cvCvtColor(m_scaledImage, m_grayImage, CV_BGR2GRAY);
+        } else {
+            if(g_debug_WAFMeter) {
+                fprintf(stderr, "WAFMeter::%s:%d : convert BGRA %dx%dx%d-> gray %dx%dx%d\n",
+                        __func__, __LINE__,
+                        m_scaledImage->width, m_scaledImage->height, m_scaledImage->nChannels,
+                        m_grayImage->width, m_grayImage->height, m_grayImage->nChannels
+                        );
+            }
+            cvCvtColor(m_scaledImage, m_grayImage, CV_BGRA2GRAY);
+        }
 
 	// HSV
 	if(!to_HLS) {
@@ -703,13 +770,13 @@ The values are then converted to the destination data type:
 
 	// save image for debug
 	if(g_debug_WAFMeter) {
-		tmSaveImage(TMP_DIRECTORY "HSVimage.ppm", hsvImage);
-		if(!m_HSHistoImage) {
-			m_HSHistoImage = tmCreateImage(cvSize(H_MAX, S_MAX), IPL_DEPTH_8U, 1);
-		} else
-			cvZero(m_HSHistoImage);
-
-		colorWAFImage = tmCreateImage(cvSize(m_scaledImage->width, m_scaledImage->height), IPL_DEPTH_8U, 1);
+            tmSaveImage(TMP_DIRECTORY "HSVimage.ppm", hsvImage);
+            if(!m_HSHistoImage) {
+                m_HSHistoImage = tmCreateImage(cvSize(H_MAX, S_MAX), IPL_DEPTH_8U, 1);
+            } else {
+                cvZero(m_HSHistoImage);
+            }
+            colorWAFImage = tmCreateImage(cvSize(m_scaledImage->width, m_scaledImage->height), IPL_DEPTH_8U, 1);
 	}
 	double color_factor = 0.;
 	int color_factor_nb = 0;
@@ -798,7 +865,13 @@ The values are then converted to the destination data type:
 					3);
 		} else
 			cvZero(m_ColorHistoImage);
-
+                if(g_debug_WAFMeter) {
+                    fprintf(stderr, "WAFMeter::%s:%d : convert HSV2BGR %dx%dx%d-> gray %dx%dx%d\n",
+                            __func__, __LINE__,
+                            hsvOutImage->width, hsvOutImage->height, hsvOutImage->nChannels,
+                            m_ColorHistoImage->width, m_ColorHistoImage->height, m_ColorHistoImage->nChannels
+                            );
+                }
 		cvCvtColor(hsvOutImage, m_ColorHistoImage, CV_HSV2BGR);
 
 		tmSaveImage(TMP_DIRECTORY "colorWaf.pgm", colorWAFImage);

@@ -54,6 +54,17 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 
         decorImage.load(":icons/Interface-montage.png");
         decorImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+
+
+        // Load hue scale from ressource file (easier to deploy application)
+        QImage huescale(":huescale.png");
+        if(!huescale.isNull()) {
+            IplImage * header = cvCreateImageHeader(cvSize(huescale.width(), huescale.height()),
+                                                    IPL_DEPTH_8U, huescale.depth()/8);
+            header->imageData = (char *)huescale.bits();
+            setWafHueScale(header);
+            cvReleaseImageHeader(&header);
+        }
 }
 
 WAFMainWindow::~WAFMainWindow()
@@ -63,7 +74,7 @@ WAFMainWindow::~WAFMainWindow()
 
 
 
-void WAFMainWindow::on_fileButton_pressed() {
+void WAFMainWindow::on_fileButton_clicked() {
 	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
 						 m_path,
 						 tr("Images (*.png *.xpm *.jpg)"));
@@ -75,7 +86,7 @@ void WAFMainWindow::on_fileButton_pressed() {
 	m_path = fi.absolutePath();
 
 	// load file
-	IplImage * iplImage = cvLoadImage(fileName.ascii());
+        IplImage * iplImage = cvLoadImage(fileName.toUtf8().data());
 	computeWAF(iplImage);
 
 	tmReleaseImage(&iplImage);
@@ -113,8 +124,8 @@ QImage iplImageToQImage(IplImage * iplImage) {
 
 	bool rgb24_to_bgr32 = false;
 	if(depth == 3  ) {// RGB24 is obsolete on Qt => use 32bit instead
-		depth = 4;
-		rgb24_to_bgr32 = true;
+            depth = 4;
+            rgb24_to_bgr32 = true;
 	}
 
 	u32 * grayToBGR32palette = grayToBGR32;
@@ -133,8 +144,8 @@ QImage iplImageToQImage(IplImage * iplImage) {
 //		orig_width--;
 
 
-	QImage qImage(orig_width, iplImage->height, 8 * depth);
-	memset(qImage.bits(), 0, orig_width*iplImage->height*depth);
+        QImage qImage(orig_width, iplImage->height, depth == 1 ? QImage::Format_Mono : QImage::Format_ARGB32);
+        memset(qImage.bits(), 255, orig_width*iplImage->height*depth); // to fill the alpha channel
 
 
 	switch(iplImage->depth) {
@@ -398,15 +409,22 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 void WAFMainWindow::on_deskButton_clicked() {
     QPoint curpos = QApplication::activeWindow()->pos();
     QRect currect = QApplication::activeWindow()->rect();
-	fprintf(stderr, "%s:%d: curpos=%dx%d +%dx%d\n",
+    QPoint imgPos = QApplication::activeWindow()->geometry().topLeft();
+    QRect imgRect = ui->imageLabel->rect();
+/*
+    fprintf(stderr, "%s:%d: curpos=%dx%d +%dx%d imageLabel=%d,%d rect=%d,%d+%dx%d\n",
             __func__, __LINE__,
             curpos.x(), curpos.y(),
-            currect.width(), currect.height());
-
-    m_grabRect = QRect(curpos.x(), curpos.y(),
-                       currect.width(), currect.height());
+            currect.width(), currect.height(),
+            imgPos.x(), imgPos.y(),
+            imgRect.x(), imgRect.y(),
+            imgRect.width(), imgRect.height()
+            );
+*/
+    m_grabRect = QRect(imgPos.x()+1, imgPos.y()+1,
+                       imgRect.width(), imgRect.height());
     hide();
-    QTimer::singleShot(10, this, SLOT(on_grabTimer_timeout()));
+    QTimer::singleShot(100, this, SLOT(on_grabTimer_timeout()));
 }
 
 void WAFMainWindow::on_grabTimer_timeout() {
@@ -414,10 +432,10 @@ void WAFMainWindow::on_grabTimer_timeout() {
     QPixmap desktopPixmap = QPixmap::grabWindow(
             //QApplication::activeWindow()->winId());
             QApplication::desktop()->winId());
-    fprintf(stderr, "%s:%d: desktopImage=%dx%dx%d\n",
+  /*  fprintf(stderr, "%s:%d: desktopImage=%dx%dx%d\n",
             __func__, __LINE__,
             desktopPixmap.width(), desktopPixmap.height(), desktopPixmap.depth());
-
+*/
     //QApplication::activeWindow()->show();
 
     // Crop where the window is
@@ -427,13 +445,14 @@ void WAFMainWindow::on_grabTimer_timeout() {
             m_grabRect.x(), m_grabRect.y(),
             m_grabRect.width(), m_grabRect.height());
 
-    QImage desktopImage( desktopPixmap.copy(m_grabRect) );
+    QImage desktopImage;
+    desktopImage = ( desktopPixmap.copy(m_grabRect).toImage() );
 
     if(desktopImage.isNull()) return;
-    fprintf(stderr, "%s:%d: desktopImage=%dx%dx%d\n",
+   /* fprintf(stderr, "%s:%d: desktopImage=%dx%dx%d\n",
             __func__, __LINE__,
             desktopImage.width(), desktopImage.height(), desktopImage.depth());
-
+*/
 
     IplImage * header = cvCreateImageHeader(cvSize(desktopImage.width(), desktopImage.height()),
                                             IPL_DEPTH_8U, desktopImage.depth()/8);
@@ -441,10 +460,13 @@ void WAFMainWindow::on_grabTimer_timeout() {
     m_wafMeter.setUnscaledImage(header);
     t_waf_info waf = m_wafMeter.getWAF();
 
-    show();
+
+    //QApplication::activeWindow()->move(m_grabRect.topLeft());
 
     // Display images
     displayWAFMeasure(waf, header);
+
+    show();
 
     cvReleaseImageHeader(&header);
 }
@@ -462,7 +484,7 @@ void WAFMainWindow::on_snapButton_clicked() {
     QString dateStr = QDateTime::currentDateTime().toString(tr("yyyy-MM-dd_hhmmss"));
 
     QString filepath = snapDir.absoluteFilePath("WAF_" + dateStr + "waf=" + wafStr + "perc.png");
-    qDebug("Saving '" + filepath + "' as PNG");
+
     resultImage.save( filepath,
                       "PNG");
 }
@@ -675,8 +697,9 @@ void WAFMainWindow::startBackgroundThread() {
 	m_pWAFMeterThread->start();
 
 	if(!m_timer.isActive()) {
-		m_timer.start(100);
-	}
+          //  m_timer.start(40); // 25 fps
+            m_timer.start(100); // 10 fps
+        }
 
 }
 

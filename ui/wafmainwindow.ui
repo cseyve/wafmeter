@@ -20,7 +20,7 @@
    <string>WAF Meter</string>
   </property>
   <property name="windowIcon">
-   <iconset resource="../WAFmeter.qrc">
+   <iconset>
     <normaloff>:/icons/WAFMeter128.png</normaloff>:/icons/WAFMeter128.png</iconset>
   </property>
   <property name="styleSheet">
@@ -73,7 +73,7 @@
           <string notr="true">background-color: rgba(0,0,0,255);</string>
          </property>
          <property name="pixmap">
-          <pixmap resource="../WAFmeter.qrc">:/icons/Interface-montage-splash.png</pixmap>
+          <pixmap>:/icons/Interface-montage-splash.png</pixmap>
          </property>
          <property name="scaledContents">
           <bool>false</bool>
@@ -122,7 +122,7 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../WAFmeter.qrc">
+             <iconset>
               <normaloff>:/icons/camera-web.png</normaloff>:/icons/camera-web.png</iconset>
             </property>
             <property name="checkable">
@@ -154,7 +154,7 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../WAFmeter.qrc">
+             <iconset>
               <normaloff>:/icons/media-playback-start.png</normaloff>:/icons/media-playback-start.png</iconset>
             </property>
             <property name="checkable">
@@ -186,11 +186,18 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../WAFmeter.qrc">
+             <iconset>
               <normaloff>:/icons/image-jpeg.png</normaloff>:/icons/image-jpeg.png</iconset>
             </property>
             <property name="shortcut">
              <string>Ctrl+O</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QPushButton" name="deskButton">
+            <property name="text">
+             <string>Desk</string>
             </property>
            </widget>
           </item>
@@ -216,7 +223,7 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset resource="../WAFmeter.qrc">
+             <iconset>
               <normaloff>:/icons/camera-photo.png</normaloff>:/icons/camera-photo.png</iconset>
             </property>
            </widget>
@@ -231,8 +238,6 @@
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources>
-  <include location="../WAFmeter.qrc"/>
- </resources>
+ <resources/>
  <connections/>
 </ui>

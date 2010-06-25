@@ -111,15 +111,21 @@ private:
 	/** @brief Start background thread for capture source */
 	void startBackgroundThread();
 
+        QRect m_grabRect;
+
         QImage decorImage;
         QImage resultImage;
         t_waf_info m_waf;
 private slots:
         void on_fileButton_pressed();
         void on_snapButton_clicked();
+        void on_deskButton_clicked();
         void on_camButton_toggled(bool checked);
 	void on_movieButton_toggled(bool checked);
 	void on_m_timer_timeout();
+
+        void on_grabTimer_timeout();
+
 };
 
 #endif // WAFMAINWINDOW_H

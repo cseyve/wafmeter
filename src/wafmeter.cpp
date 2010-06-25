@@ -29,7 +29,7 @@
 #define MUNORM(a) (((a)<0.f) ? 0.f : ( ((a)>1.f) ? 1.f : (a)))
 
 
-u8 g_debug_WAFMeter = 0;
+u8 g_debug_WAFMeter = 1;
 u8 g_mode_realtime = 1;
 
 
@@ -161,15 +161,16 @@ int WAFMeter::setUnscaledImage(IplImage * img) {
 	if(!m_scaledImage) {
 		m_scaledImage_allocated = true;
 		m_scaledImage = tmCreateImage(cvSize(sc_w, sc_h),
-								  IPL_DEPTH_8U, m_originalImage->nChannels);
+                                              IPL_DEPTH_8U, m_originalImage->nChannels);
 	}
 
 	// Resize to processing scale
 	cvResize(m_originalImage, m_scaledImage);
 
 	if(g_debug_WAFMeter) {
-		fprintf(stderr, "WAFMeter::%s:%d : scaled to %dx%d\n", __func__, __LINE__,
-			m_scaledImage->width, m_scaledImage->height);
+                fprintf(stderr, "WAFMeter::%s:%d : scaled to %dx%d x %d\n", __func__, __LINE__,
+                        m_scaledImage->width, m_scaledImage->height,
+                        m_scaledImage->nChannels);
 
 		fprintf(stderr, "\nWAFMeter::%s:%d : processHSV(m_scaledImage=%dx%d)\n", __func__, __LINE__,
 			m_scaledImage->width, m_scaledImage->height);fflush(stderr);
@@ -643,21 +644,34 @@ The values are then converted to the destination data type:
 	} else {
 
 	}
-	IplImage * bgrImage = m_scaledImage;
+
+        IplImage * rgbImage = m_scaledImage;
 	if(m_scaledImage->nChannels == 4) {
-		bgrImage = tmCreateImage(cvGetSize(m_scaledImage), IPL_DEPTH_8U, 1);
-		cvCvtColor(m_scaledImage, bgrImage, CV_BGRA2BGR);
+            fprintf(stderr, "WAFMeter::%s:%d : convert to RGB\n", __func__, __LINE__);
+
+            rgbImage = tmCreateImage(cvGetSize(m_scaledImage), IPL_DEPTH_8U, 3);
+            // bad on macOSX:		cvCvtColor(m_scaledImage, bgrImage, CV_BGRA2BGR);
+            cvCvtColor(m_scaledImage, rgbImage, CV_BGRA2BGR);
 	}
 
 	if(to_HLS) {
-		cvCvtColor(bgrImage, hsvImage, CV_BGR2HLS);
+            if(m_scaledImage->nChannels != 4) {
+                cvCvtColor(rgbImage, hsvImage, CV_BGR2HLS);
+            } else {
+                cvCvtColor(rgbImage, hsvImage, CV_RGB2HLS);
+            }
 	} else {
-		cvCvtColor(bgrImage, hsvImage, CV_BGR2HSV);
-		//cvCvtColor(m_scaledImage, hsvImage, CV_BGR2Lab);
+            if(m_scaledImage->nChannels != 4) {
+                cvCvtColor(rgbImage, hsvImage, CV_BGR2HSV);
+            } else {
+                cvCvtColor(rgbImage, hsvImage, CV_RGB2HSV);
+            }
+
+            //cvCvtColor(m_scaledImage, hsvImage, CV_BGR2Lab);
 	}
 
-	if(bgrImage != m_scaledImage) {
-		tmReleaseImage(&bgrImage);
+        if(rgbImage != m_scaledImage) {
+                tmReleaseImage(&rgbImage);
 	}
 
 	if(!h_plane) h_plane = tmCreateImage( cvGetSize(hsvImage), IPL_DEPTH_8U, 1 );

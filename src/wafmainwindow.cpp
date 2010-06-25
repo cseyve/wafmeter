@@ -28,6 +28,7 @@
 #include "imgutils.h"
 #include <QPainter>
 #include <QDateTime>
+#include <QDesktopWidget>
 
 u8 mode_file = 0;
 
@@ -158,14 +159,14 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					memcpy(qImage.bits() + r*orig_width*depth,
 						iplImage->imageData + r*iplImage->widthStep,
 						orig_width*depth);
-
+/*
 					for(int pos4 = 0 ; pos4<orig_width*depth; pos4+=depth,
 						buf_out+=4, buf_in+=depth
 						 ) {
 						buf_out[2] = buf_in[0];
 						buf_out[0] = buf_in[2];
-					}
-				}
+                                        }
+*/				}
 			}
 		}
 		else if(rgb24_to_bgr32) {
@@ -394,6 +395,59 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 	displayWAFMeasure(waf, iplImage);
 }
 
+void WAFMainWindow::on_deskButton_clicked() {
+    QPoint curpos = QApplication::activeWindow()->pos();
+    QRect currect = QApplication::activeWindow()->rect();
+    fprintf(stderr, "%s:%d: curpos=%dx%dx%d\n",
+            __func__, __LINE__,
+            curpos.x(), curpos.y(),
+            currect.width(), currect.height());
+    m_grabRect = QRect(curpos.x(), curpos.y(),
+                       currect.width(), currect.height());
+    hide();
+    QTimer::singleShot(10, this, SLOT(on_grabTimer_timeout()));
+}
+
+void WAFMainWindow::on_grabTimer_timeout() {
+
+    QPixmap desktopPixmap = QPixmap::grabWindow(
+            //QApplication::activeWindow()->winId());
+            QApplication::desktop()->winId());
+    fprintf(stderr, "%s:%d: desktopImage=%dx%dx%d\n",
+            __func__, __LINE__,
+            desktopPixmap.width(), desktopPixmap.height(), desktopPixmap.depth());
+
+    //QApplication::activeWindow()->show();
+
+    // Crop where the window is
+
+    fprintf(stderr, "%s:%d: curpos=%dx%dx%d\n",
+            __func__, __LINE__,
+            m_grabRect.x(), m_grabRect.y(),
+            m_grabRect.width(), m_grabRect.height());
+
+    QImage desktopImage( desktopPixmap.copy(m_grabRect) );
+
+    if(desktopImage.isNull()) return;
+    fprintf(stderr, "%s:%d: desktopImage=%dx%dx%d\n",
+            __func__, __LINE__,
+            desktopImage.width(), desktopImage.height(), desktopImage.depth());
+
+
+    IplImage * header = cvCreateImageHeader(cvSize(desktopImage.width(), desktopImage.height()),
+                                            IPL_DEPTH_8U, desktopImage.depth()/8);
+    header->imageData = (char *)desktopImage.bits();
+    m_wafMeter.setUnscaledImage(header);
+    t_waf_info waf = m_wafMeter.getWAF();
+
+    show();
+
+    // Display images
+    displayWAFMeasure(waf, header);
+
+    cvReleaseImageHeader(&header);
+}
+
 void WAFMainWindow::on_snapButton_clicked() {
     if(resultImage.isNull()) return;
 
@@ -474,7 +528,7 @@ void WAFMainWindow::displayWAFMeasure(t_waf_info waf, IplImage * iplImage)
 
 
         // Display waf with dial ----------------------------------------------
-
+        painter.setRenderHint(QPainter::Antialiasing, true);
         // Margin on both sides of of the dial
 	float theta_min = 0.05;
 	float theta = (3.1415927-2*theta_min) * (1. - waf.waf_factor) + theta_min;

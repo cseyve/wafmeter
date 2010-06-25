@@ -398,10 +398,11 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 void WAFMainWindow::on_deskButton_clicked() {
     QPoint curpos = QApplication::activeWindow()->pos();
     QRect currect = QApplication::activeWindow()->rect();
-    fprintf(stderr, "%s:%d: curpos=%dx%dx%d\n",
+	fprintf(stderr, "%s:%d: curpos=%dx%d +%dx%d\n",
             __func__, __LINE__,
             curpos.x(), curpos.y(),
             currect.width(), currect.height());
+
     m_grabRect = QRect(curpos.x(), curpos.y(),
                        currect.width(), currect.height());
     hide();
@@ -421,7 +422,7 @@ void WAFMainWindow::on_grabTimer_timeout() {
 
     // Crop where the window is
 
-    fprintf(stderr, "%s:%d: curpos=%dx%dx%d\n",
+	fprintf(stderr, "%s:%d: curpos=%dx%d+%dx%d\n",
             __func__, __LINE__,
             m_grabRect.x(), m_grabRect.y(),
             m_grabRect.width(), m_grabRect.height());
@@ -747,6 +748,8 @@ void WAFMeterThread::run()
                        if( !frame) { //!cvGrabFrame( m_capture ) ) {
 				fprintf(stderr, "%s:%d : capture=%p FAILED\n", __func__, __LINE__, capture);
                                 sleep(1);
+				sleep(2);
+
 			} else {
 				// fprintf(stderr, "%s:%d : capture=%p ok, iteration=%d\n",
 				//		__func__, __LINE__, m_capture, m_iteration);

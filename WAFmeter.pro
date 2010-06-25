@@ -2,10 +2,11 @@
 # Project created by QtCreator 2009-08-10T21:22:13
 # -------------------------------------------------
 TARGET = WAFmeter
-TEMPLATE = app
-DEFINES += QT3_SUPPORT
 
 include(opencv.pri)
+
+TEMPLATE = app
+DEFINES += QT3_SUPPORT
 
 linux-g++:TMAKE_CXXFLAGS += -Wall \
     -g \

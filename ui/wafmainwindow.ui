@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>324</width>
+    <width>351</width>
     <height>452</height>
    </rect>
   </property>
@@ -20,7 +20,7 @@
    <string>WAF Meter</string>
   </property>
   <property name="windowIcon">
-   <iconset>
+   <iconset resource="../WAFmeter.qrc">
     <normaloff>:/icons/WAFMeter128.png</normaloff>:/icons/WAFMeter128.png</iconset>
   </property>
   <property name="styleSheet">
@@ -64,16 +64,28 @@
        <item>
         <widget class="QLabel" name="imageLabel">
          <property name="sizePolicy">
-          <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+          <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
            <horstretch>0</horstretch>
            <verstretch>0</verstretch>
           </sizepolicy>
+         </property>
+         <property name="minimumSize">
+          <size>
+           <width>320</width>
+           <height>416</height>
+          </size>
+         </property>
+         <property name="maximumSize">
+          <size>
+           <width>320</width>
+           <height>416</height>
+          </size>
          </property>
          <property name="styleSheet">
           <string notr="true">background-color: rgba(0,0,0,255);</string>
          </property>
          <property name="pixmap">
-          <pixmap>:/icons/Interface-montage-splash.png</pixmap>
+          <pixmap resource="../WAFmeter.qrc">:/icons/Interface-montage-splash.png</pixmap>
          </property>
          <property name="scaledContents">
           <bool>false</bool>
@@ -106,12 +118,6 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="minimumSize">
-             <size>
-              <width>64</width>
-              <height>24</height>
-             </size>
-            </property>
             <property name="toolTip">
              <string>Activate camera grabbing</string>
             </property>
@@ -122,7 +128,7 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../WAFmeter.qrc">
               <normaloff>:/icons/camera-web.png</normaloff>:/icons/camera-web.png</iconset>
             </property>
             <property name="checkable">
@@ -138,12 +144,6 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="minimumSize">
-             <size>
-              <width>64</width>
-              <height>24</height>
-             </size>
-            </property>
             <property name="toolTip">
              <string>Open a movie file</string>
             </property>
@@ -154,7 +154,7 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../WAFmeter.qrc">
               <normaloff>:/icons/media-playback-start.png</normaloff>:/icons/media-playback-start.png</iconset>
             </property>
             <property name="checkable">
@@ -170,12 +170,6 @@
               <verstretch>0</verstretch>
              </sizepolicy>
             </property>
-            <property name="minimumSize">
-             <size>
-              <width>64</width>
-              <height>24</height>
-             </size>
-            </property>
             <property name="toolTip">
              <string>Open a picture file</string>
             </property>
@@ -186,7 +180,7 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../WAFmeter.qrc">
               <normaloff>:/icons/image-jpeg.png</normaloff>:/icons/image-jpeg.png</iconset>
             </property>
             <property name="shortcut">
@@ -196,8 +190,21 @@
           </item>
           <item>
            <widget class="QPushButton" name="deskButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
+            <property name="toolTip">
+             <string>Grab screen behind the window</string>
+            </property>
             <property name="text">
-             <string>Desk</string>
+             <string/>
+            </property>
+            <property name="icon">
+             <iconset resource="../WAFmeter.qrc">
+              <normaloff>:/icons/video-display.png</normaloff>:/icons/video-display.png</iconset>
             </property>
            </widget>
           </item>
@@ -216,6 +223,12 @@
           </item>
           <item>
            <widget class="QPushButton" name="snapButton">
+            <property name="sizePolicy">
+             <sizepolicy hsizetype="Minimum" vsizetype="Preferred">
+              <horstretch>0</horstretch>
+              <verstretch>0</verstretch>
+             </sizepolicy>
+            </property>
             <property name="toolTip">
              <string>Save snapshot in your Desktop directory</string>
             </property>
@@ -223,7 +236,7 @@
              <string/>
             </property>
             <property name="icon">
-             <iconset>
+             <iconset resource="../WAFmeter.qrc">
               <normaloff>:/icons/camera-photo.png</normaloff>:/icons/camera-photo.png</iconset>
             </property>
            </widget>
@@ -238,6 +251,8 @@
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
- <resources/>
+ <resources>
+  <include location="../WAFmeter.qrc"/>
+ </resources>
  <connections/>
 </ui>

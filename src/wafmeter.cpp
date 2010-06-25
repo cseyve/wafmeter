@@ -29,7 +29,7 @@
 #define MUNORM(a) (((a)<0.f) ? 0.f : ( ((a)>1.f) ? 1.f : (a)))
 
 
-u8 g_debug_WAFMeter = 1;
+u8 g_debug_WAFMeter = 0;
 u8 g_mode_realtime = 1;
 
 

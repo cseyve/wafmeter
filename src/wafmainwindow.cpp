@@ -642,7 +642,11 @@ void WAFMainWindow::on_camButton_toggled(bool checked)
 	}
 
 	if(!capture) {
-                capture = cvCreateCameraCapture (CV_CAP_ANY);
+                int retry = 0;
+		do {
+			capture = cvCreateCameraCapture (retry);
+			retry++;
+		} while(!capture && retry < 4);
                 fprintf(stderr, "%s:%d : capture=%p\n", __func__, __LINE__, capture);
 	}
 	if(!capture) { return ; }

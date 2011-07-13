@@ -1,182 +1,154 @@
-# #####################################################################
-# TAMANOIR Qt PROJECT
-# #####################################################################
-TEMPLATE = app
-mac::DEFINES += VERSION_YY="`date +%Y`" \
-	VERSION_MM="`date +%m | sed 's/0//'`" \
-	VERSION_DD="`date +%d | sed 's/0//'`"
-linux-g++::DEFINES += VERSION_YY="`date +%Y`" \
-	VERSION_MM="`date +%m | sed 's/0//'`" \
-	VERSION_DD="`date +%d | sed 's/0//'`"
-win32::DEFINES += VERSION_YY="2009" \
-	VERSION_MM="6" \
-	VERSION_DD="25"
+#this script try to locate opencv and set the right compilation options
 
-linux-g++:TMAKE_CXXFLAGS += -Wall \
-	-g \
-	-fexceptions \
-	-Wimplicit \
-	-Wreturn-type \
-	-Wunused \
-	-Wswitch \
-	-Wcomment \
-	-Wuninitialized \
-	-Wparentheses \
-	-Wpointer-arith
+# PG = opencv
+# system(pkg-config --exists $$PG) {
+#    message(opencv v$$system(pkg-config --modversion $$PG)found)
+#    LIBS += $$system(pkg-config --libs $$PG)
+#    INCLUDEPATH += $$system(pkg-config --cflags $$PG | sed s/-I//g)
+# } else {
+#   error($$PG "NOT FOUND => IT WILL NOT COMPILE")
+#}
 
-linux-g++:DEFINES += LINUX
+LIBSDIR =
+LIBS_EXT = dylib
 
-LIBS_EXT = so
-macx::LIBS_EXT = dylib
 
-linux-g++: { 
-	LIBS_EXT = so 
-}
-
-win32: {
-	LIBS_EXT = lib
-}
-
-message( "Installation directory = $(PWD) ")
-
-LIBS =
-DYN_LIBS =
-STATIC_LIBS =
-win32: {
-	message("Win32 specific paths : OpenCV must be installed in C:\Program Files\OpenCV")
-	INCLUDEPATH += "C:\Program Files\OpenCV\cxcore\include"
-	INCLUDEPATH += "C:\Program Files\OpenCV\cv\include"
-	INCLUDEPATH += "C:\Program Files\OpenCV\cvaux\include"
-	INCLUDEPATH += "C:\Program Files\OpenCV\otherlibs\highgui"
-	DYN_LIBS += -L"C:\Program Files\OpenCV\lib" \
-		-L"C:\Program Files\OpenCV\bin" \
-		-lcxcore \
-		-lcv
-}
+linux-g++: LIBS_EXT = so
 unix: {
+	##################### OPENCV >= 2.2 #####################
 	# Test if OpenCV library is present
-	OPENCV_STATIC_LIBDIR =
-	exists( /opt/local/include/opencv/cv.hpp) {
-		message("OpenCV found in /opt/local/include/opencv.")
-		INCLUDEPATH += /opt/local/include/opencv
-		CVINSTPATH = /opt/local
-		CVINCPATH = /opt/local/include/opencv
-		DYN_LIBS += -L/opt/local/lib
-		OPENCV_STATIC_LIBDIR = /opt/local/lib
-	}
-	else {
-		exists( /usr/local/include/opencv/cv.hpp ) {
-			message("OpenCV found in /usr/local/include.")
-			INCLUDEPATH += /usr/local/include/opencv
-			CVINSTPATH = /usr/local
-			CVINCPATH = /usr/local/include/opencv
-			DYN_LIBS += -L/usr/local/lib
-			OPENCV_STATIC_LIBDIR = /usr/local/lib
-		}
-		else {
-			exists( /usr/include/opencv/cv.hpp )
-			 {
-				message("OpenCV found in /usr/include.")
-				CVINSTPATH = /usr
-				CVINCPATH = /usr/include/opencv
-				INCLUDEPATH += /usr/include/opencv
+	exists( /usr/local/include/opencv2/core/core.hpp ) {
+		message("OpenCV >= 2.2 found in /usr/local/include/opencv2/")
+		DEFINES += OPENCV_22 OPENCV2
+		INCLUDEPATH += /usr/local/include/opencv2
 
-				# DYN_LIBS += -L/usr/lib
-				OPENCV_STATIC_LIBDIR = /usr/local/lib
-			}
-			else {
-				exists( /sw/include/opencv/cv.hpp )
-				 {
-					message("OpenCV found in /usr/include.")
+		CVINSTPATH = /usr/local
+		CVINCPATH = /usr/local/include/opencv2
+
+		LIBS += -L/usr/local/lib
+		LIBSDIR = /usr/local/lib
+	} else {
+		exists( /usr/include/opencv2/core/core.hpp ) {
+	                message("OpenCV >= 2.2 found in /usr/include/opencv2/")
+
+			DEFINES += OPENCV_22 OPENCV2
+
+			#message("OpenCV found in /usr/include.")
+			CVINSTPATH = /usr
+			CVINCPATH = /usr/include/opencv2
+			INCLUDEPATH += /usr/include/opencv2
+
+			LIBS += -L/usr/lib
+			LIBSDIR = /usr/lib
+		} else {
+			##################### OPENCV <= 2.1 #####################
+			# Test if OpenCV library is present
+			exists( /usr/local/include/opencv/cv.hpp ) {
+				DEFINES += OPENCV_21 OPENCV2
+				#message("OpenCV found in /usr/local/include.")
+				INCLUDEPATH += /usr/local/include/opencv
+
+				CVINSTPATH = /usr/local
+				CVINCPATH = /usr/local/include/opencv
+
+				LIBS += -L/usr/local/lib
+				LIBSDIR = /usr/local/lib
+			} else {
+				exists( /usr/include/opencv/cv.hpp )
+				{
+					DEFINES += OPENCV_21 OPENCV2
+					#message("OpenCV found in /usr/include.")
 					CVINSTPATH = /usr
 					CVINCPATH = /usr/include/opencv
 					INCLUDEPATH += /usr/include/opencv
-					DYN_LIBS += -L/sw/lib
-					OPENCV_STATIC_LIBDIR = /sw/lib
+
+					LIBS += -L/usr/lib
+					LIBSDIR = /usr/lib
+				} else {
+					message ( "OpenCV NOT FOUND => IT WILL NOT COMPILE" )
 				}
-				else:message ( "OpenCV NOT FOUND => IT WILL NOT COMPILE" )
 			}
 		}
 	}
 
-	# on MacOS X with OpenCV 1, we must also link with cxcore
-	message( Dynamic libraries extension : '$$LIBS_EXT' )
-	CXCORE_LIB = $$CVINSTPATH/lib/libcxcore.$$LIBS_EXT
-	message ( Testing CxCore lib = '$$CXCORE_LIB' )
-	exists( $$CXCORE_LIB ) {
-		message( " => Linking with CxCore in '$$CVINSTPATH' ")
-		DYN_LIBS += -lcxcore
-		STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cxcore.a
+
+
+
+	CV22_LIB = $$LIBSDIR/libopencv_core.$$LIBS_EXT
+	message ( Testing CV lib = '$$CV22_LIB )
+	exists( $$CV22_LIB ) {
+		#message( " => Linking with -lcv ('$$CV_LIB' exists)")
+		LIBS += -lopencv_core -lopencv_imgproc -lopencv_legacy -lopencv_highgui 
+		# for Haar (needed for pluigns)
+		LIBS += -lopencv_features2d -lopencv_video -lopencv_objdetect
+	} else {
+		# For Ubuntu 7.10 for example, the link option is -lcv instead of -lopencv
+		CV_LIB = $$LIBSDIR/libcv.$$LIBS_EXT
+		#message ( Testing CV lib = '$$CV_LIB' )
+		exists( $$CV_LIB ) {
+			#message( " => Linking with -lcv ('$$CV_LIB' exists)")
+			LIBS += -lcxcore -lcv -lcvaux -lhighgui
+		} else {
+			# on MacOS X with OpenCV 1, we must also link with cxcore
+			#message( Dynamic libraries : '$$LIBS_EXT' )
+			CXCORE_LIB = $$CVINSTPATH/lib/libcxcore.$$LIBS_EXT
+			#message ( Testing CxCore lib = '$$CXCORE_LIB' )
+			exists( $$CXCORE_LIB ) {
+				#                      message( " => Linking with CxCore in '$$CVINSTPATH' ")
+				LIBS += -lcxcore
+			}
+
+
+			CV_LIB = $$LIBSDIR/libopencv.$$LIBS_EXT
+			exists($$CV_LIB ) {
+
+				#message( " => Linking with -lopencv ('$$CV_LIB' does not exist)")
+				LIBS += -lopencv -lcvaux -lhighgui
+			}
+		}
 	}
 
-	# For Ubuntu 7.10 for example, the link option is -lcv instead of -lopencv
-	CV_LIB = $$CVINSTPATH/lib/libcv.$$LIBS_EXT
-	message ( Testing CV lib = '$$CV_LIB' )
-	exists( $$CV_LIB ) {
-		message( " => Linking with -lcv ('$$CV_LIB' exists)")
-		DYN_LIBS += -lcv
-		STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cxcore.a
-	}
-	else {
-		message( " => Linking with -lopencv ('$$CV_LIB' does not exist)")
-		DYN_LIBS += -lopencv
-		STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/libopencv.a
-	}
-	INSTALL_DUSTHOOVER = $(DUSTHOOVER_DIR)
-	message( Reading installation directory : '$$INSTALL_DUSTHOOVER')
-	count( $$INSTALL_DUSTHOOVER , 0 ):message("Installation directory is undefined !! Installing in '/usr/local/wafmeter'.")
-	else {
-		message( Installing in : $$INSTALL_DUSTHOOVER)
-		DEFINES += BASE_DIRECTORY=$$INSTALL_DUSTHOOVER
-		message( defines : $$DEFINES )
+	# Subdirs for OpenCV 2.2
+	COREHPP = $$CVINCPATH/core/core.hpp
+	message ("Testing $$COREHPP")
+	exists( $$COREHPP ) {
+		message("OpenCV >= 2.2 found in $$COREHPP")
+		INCLUDEPATH += $$CVINCPATH/core
+		INCLUDEPATH += $$CVINCPATH/imgproc
+		INCLUDEPATH += $$CVINCPATH/legacy
+		INCLUDEPATH += $$CVINCPATH/calib3d
+		INCLUDEPATH += $$CVINCPATH/contrib
+		INCLUDEPATH += $$CVINCPATH/ml
+		INCLUDEPATH += $$CVINCPATH/highgui
+
 	}
 }
 
-DYN_LIBS += -lcvaux \
-	-lhighgui
-STATIC_LIBS += $$OPENCV_STATIC_LIBDIR/lib_cv.a \
-	$$OPENCV_STATIC_LIBDIR/lib_cvaux.a \
-	$$OPENCV_STATIC_LIBDIR/libtiff.a \
-	$$OPENCV_STATIC_LIBDIR/lib_highgui.a
+win32: {
+	message("Win32 specific paths : OpenCV must be installed in C:\Program Files\OpenCV")
+	DYN_LIBS += -L"C:\Program Files\OpenCV\lib" \
+		-L"C:\Program Files\OpenCV\bin"
 
-# $$OPENCV_STATIC_LIBDIR/libjpeg.a
-# Build static if linked statically with a patched version of OpenCV for 16bit TIFF pictures
-# ./configure --with-ffmpeg=no --with-tiff=yes --with-v4l=no --with-v4l2=no --with-gtk=no
-BUILD_STATIC = $$(BUILD_STATIC)
+	exists("C:\Program Files\OpenCV\cxcore\include\cxcore.h") {
+		DEFINES += OPENCV2 OPENCV21
+		INCLUDEPATH += "C:\Program Files\OpenCV\cxcore\include"
+		INCLUDEPATH += "C:\Program Files\OpenCV\cv\include"
+		INCLUDEPATH += "C:\Program Files\OpenCV\cvaux\include"
+		INCLUDEPATH += "C:\Program Files\OpenCV\otherlibs\highgui"
+		INCLUDEPATH += "C:\Program Files\OpenCV\otherlibs\highgui"
 
-# contains(BUILD_STATIC, true)
-macx:contains(BUILD_STATIC, true) {
-	message("Building static version of binary :")
-	CONFIG += x86 \
-		ppc
+		DYN_LIBS += -lopencv_core -lopencv_imgproc -lopencv_highgui
 
-	# Test for building releases
-	LIBS += $$STATIC_LIBS
-}
-else {
-	message("Building dynamic libraries version of binary :")
+	} else {
+		message("Complete for opencv 2.2")
+		DEFINES += OPENCV2 OPENCV22
+		INCLUDEPATH += "C:\Program Files\OpenCV\include"
 
-	# Dynamic libraries version
+		DYN_LIBS += -lcxcore -lcv
+
+	}
+
 	LIBS += $$DYN_LIBS
 }
 
-macx:message("MacOS X specific options =================================================")
-
-#TARGET = $$join(TARGET,,,_debug)
-# DEFINES += "TRANSLATION_DIR=\"Tamanoir.app/Contents/\""
-linux-g++ {
-	message("Linux specific options =================================================")
-}
-win32:TARGET = $$join(TARGET,,d)
-
-# }
-
-CONFIG += qt \
-	warn_on release
-
-#linux-g++::CONFIG += debug_and_release
-
-# commented to build debug version on macx
-#debug \
-#   release \
 

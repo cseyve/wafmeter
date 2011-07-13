@@ -31,8 +31,7 @@
 
 #include "wafmeter.h"
 
-// For capture pointer
-#include <highgui.h>
+
 
 namespace Ui
 {

@@ -24,7 +24,6 @@
 
 #include "wafmeter.h"
 #include "imgutils.h"
-#include <highgui.h>
 
 #define MUNORM(a) (((a)<0.f) ? 0.f : ( ((a)>1.f) ? 1.f : (a)))
 
@@ -169,9 +168,9 @@ int WAFMeter::setUnscaledImage(IplImage * img) {
 	cvResize(m_originalImage, m_scaledImage);
 
 	if(g_debug_WAFMeter) {
-                fprintf(stderr, "WAFMeter::%s:%d : scaled to %dx%d x %d\n", __func__, __LINE__,
-                        m_scaledImage->width, m_scaledImage->height,
-                        m_scaledImage->nChannels);
+		fprintf(stderr, "WAFMeter::%s:%d : scaled to %dx%d x %d\n", __func__, __LINE__,
+				m_scaledImage->width, m_scaledImage->height,
+				m_scaledImage->nChannels);
 
 		fprintf(stderr, "\nWAFMeter::%s:%d : processHSV(m_scaledImage=%dx%d)\n", __func__, __LINE__,
 			m_scaledImage->width, m_scaledImage->height);fflush(stderr);

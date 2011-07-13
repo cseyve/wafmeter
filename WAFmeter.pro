@@ -11,7 +11,8 @@ CONFIG += qt \
     warn_on \
     debug_and_release
 
-linux-g++:TMAKE_CXXFLAGS += -Wall \
+linux-g++: {
+TMAKE_CXXFLAGS += -Wall \
     -g \
     -O2 \
     -fexceptions \
@@ -23,6 +24,8 @@ linux-g++:TMAKE_CXXFLAGS += -Wall \
     -Wuninitialized \
     -Wparentheses \
     -Wpointer-arith
+DEFINES += LINUX
+}
 
 macx: {
     message("MacOS X specific options =================================================")

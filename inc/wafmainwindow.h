@@ -25,8 +25,8 @@
 #ifndef WAFMAINWINDOW_H
 #define WAFMAINWINDOW_H
 
-#include <QtCore/QTimer>
-#include <QtGui/QMainWindow>
+#include <QTimer>
+#include <QMainWindow>
 #include <QThread>
 
 #include "wafmeter.h"
@@ -35,7 +35,7 @@
 
 namespace Ui
 {
-    class WAFMainWindow;
+class WAFMainWindow;
 }
 
 /** @brief Background acquisition and processing thread
@@ -86,14 +86,14 @@ private:
   */
 class WAFMainWindow : public QMainWindow
 {
-    Q_OBJECT
+	Q_OBJECT
 
 public:
-    WAFMainWindow(QWidget *parent = 0);
-    ~WAFMainWindow();
+	WAFMainWindow(QWidget *parent = 0);
+	~WAFMainWindow();
 
 private:
-    Ui::WAFMainWindow *ui;
+	Ui::WAFMainWindow *ui;
 	QString m_path;
 
 	QTimer m_timer;
@@ -110,20 +110,20 @@ private:
 	/** @brief Start background thread for capture source */
 	void startBackgroundThread();
 
-        QRect m_grabRect;
+	QRect m_grabRect;
 
-        QImage decorImage;
-        QImage resultImage;
-        t_waf_info m_waf;
+	QImage decorImage;
+	QImage resultImage;
+	t_waf_info m_waf;
 private slots:
-        void on_fileButton_clicked();
-        void on_snapButton_clicked();
-        void on_deskButton_clicked();
-        void on_camButton_toggled(bool checked);
+	void on_fileButton_clicked();
+	void on_snapButton_clicked();
+	void on_deskButton_clicked();
+	void on_camButton_toggled(bool checked);
 	void on_movieButton_toggled(bool checked);
-	void on_m_timer_timeout();
 
-        void on_grabTimer_timeout();
+	void slot_m_timer_timeout();
+	void slot_grabTimer_timeout();
 
 };
 

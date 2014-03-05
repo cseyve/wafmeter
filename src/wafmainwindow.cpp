@@ -24,7 +24,7 @@
 
 #include "wafmainwindow.h"
 #include "ui_wafmainwindow.h"
-#include <QtGui/QFileDialog>
+#include <QFileDialog>
 #include "imgutils.h"
 #include <QPainter>
 #include <QDateTime>
@@ -50,21 +50,21 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 	QString styleSheet = QLatin1String(file.readAll());
 	//setStyleSheet(styleSheet);
 
-	connect(&m_timer, SIGNAL(timeout()), this, SLOT(on_m_timer_timeout()));
+	connect(&m_timer, SIGNAL(timeout()), this, SLOT(slot_m_timer_timeout()));
 
-        decorImage.load(":icons/Interface-montage.png");
-        decorImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+	decorImage.load(":icons/Interface-montage.png");
+	decorImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
 
 
-        // Load hue scale from ressource file (easier to deploy application)
-        QImage huescale(":huescale.png");
-        if(!huescale.isNull()) {
-            IplImage * header = cvCreateImageHeader(cvSize(huescale.width(), huescale.height()),
-                                                    IPL_DEPTH_8U, huescale.depth()/8);
-            header->imageData = (char *)huescale.bits();
-            setWafHueScale(header);
-            cvReleaseImageHeader(&header);
-        }
+	// Load hue scale from ressource file (easier to deploy application)
+	QImage huescale(":huescale.png");
+	if(!huescale.isNull()) {
+		IplImage * header = cvCreateImageHeader(cvSize(huescale.width(), huescale.height()),
+												IPL_DEPTH_8U, huescale.depth()/8);
+		header->imageData = (char *)huescale.bits();
+		setWafHueScale(header);
+		cvReleaseImageHeader(&header);
+	}
 }
 
 WAFMainWindow::~WAFMainWindow()
@@ -76,8 +76,8 @@ WAFMainWindow::~WAFMainWindow()
 
 void WAFMainWindow::on_fileButton_clicked() {
 	QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
-						 m_path,
-						 tr("Images (*.png *.xpm *.jpg)"));
+													m_path,
+													tr("Images (*.png *.xpm *.jpg)"));
 	if(fileName.isEmpty()) return;
 
 	QFileInfo fi(fileName);
@@ -86,7 +86,7 @@ void WAFMainWindow::on_fileButton_clicked() {
 	m_path = fi.absolutePath();
 
 	// load file
-        IplImage * iplImage = cvLoadImage(fileName.toUtf8().data());
+	IplImage * iplImage = cvLoadImage(fileName.toUtf8().data());
 	computeWAF(iplImage);
 
 	tmReleaseImage(&iplImage);
@@ -124,8 +124,8 @@ QImage iplImageToQImage(IplImage * iplImage) {
 
 	bool rgb24_to_bgr32 = false;
 	if(depth == 3  ) {// RGB24 is obsolete on Qt => use 32bit instead
-            depth = 4;
-            rgb24_to_bgr32 = true;
+		depth = 4;
+		rgb24_to_bgr32 = true;
 	}
 
 	u32 * grayToBGR32palette = grayToBGR32;
@@ -140,12 +140,12 @@ QImage iplImageToQImage(IplImage * iplImage) {
 	}
 
 	int orig_width = iplImage->width;
-//	if((orig_width % 2) == 1)
-//		orig_width--;
+	//	if((orig_width % 2) == 1)
+	//		orig_width--;
 
 
-        QImage qImage(orig_width, iplImage->height, depth == 1 ? QImage::Format_Mono : QImage::Format_ARGB32);
-        memset(qImage.bits(), 255, orig_width*iplImage->height*depth); // to fill the alpha channel
+	QImage qImage(orig_width, iplImage->height, depth == 1 ? QImage::Format_Mono : QImage::Format_ARGB32);
+	memset(qImage.bits(), 255, orig_width*iplImage->height*depth); // to fill the alpha channel
 
 
 	switch(iplImage->depth) {
@@ -159,8 +159,8 @@ QImage iplImageToQImage(IplImage * iplImage) {
 				for(int r=0; r<iplImage->height; r++) {
 					// NO need to swap R<->B
 					memcpy(qImage.bits() + r*orig_width*depth,
-						iplImage->imageData + r*iplImage->widthStep,
-						orig_width*depth);
+						   iplImage->imageData + r*iplImage->widthStep,
+						   orig_width*depth);
 				}
 			} else {
 				for(int r=0; r<iplImage->height; r++) {
@@ -168,15 +168,15 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					u8 * buf_out = (u8 *)(qImage.bits()) + r*orig_width*depth;
 					u8 * buf_in = (u8 *)(iplImage->imageData) + r*iplImage->widthStep;
 					memcpy(qImage.bits() + r*orig_width*depth,
-						iplImage->imageData + r*iplImage->widthStep,
-						orig_width*depth);
-/*
-					for(int pos4 = 0 ; pos4<orig_width*depth; pos4+=depth,
-						buf_out+=4, buf_in+=depth
-						 ) {
-						buf_out[2] = buf_in[0];
-						buf_out[0] = buf_in[2];
-                                        }
+						   iplImage->imageData + r*iplImage->widthStep,
+						   orig_width*depth);
+					/*
+	 for(int pos4 = 0 ; pos4<orig_width*depth; pos4+=depth,
+	  buf_out+=4, buf_in+=depth
+	   ) {
+	  buf_out[2] = buf_in[0];
+	  buf_out[0] = buf_in[2];
+										}
 */				}
 			}
 		}
@@ -210,7 +210,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 				}
 			}
 		}
-		}break;
+	}break;
 	case IPL_DEPTH_16S: {
 		if(!rgb24_to_bgr32) {
 
@@ -229,7 +229,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 				for(int r=0; r<iplImage->height; r++)
 				{
 					short * buffer3 = (short *)(iplImage->imageData
-									+ r * iplImage->widthStep);
+												+ r * iplImage->widthStep);
 					int pos3 = 0;
 					int pos4 = r * orig_width;
 					for(int c=0; c<orig_width; c++, pos3++, pos4++)
@@ -267,7 +267,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					for(int r=0; r<iplImage->height; r++)
 					{
 						short * buffer3 = (short *)(iplImage->imageData
-											+ r * iplImage->widthStep);
+													+ r * iplImage->widthStep);
 						int pos3 = 0;
 						int pos4 = r * orig_width;
 						for(int c=0; c<orig_width; c++, pos3++, pos4++)
@@ -280,7 +280,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 				}
 			}
 		}
-		}break;
+	}break;
 	case IPL_DEPTH_16U: {
 		if(!rgb24_to_bgr32) {
 
@@ -300,7 +300,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					for(int r=0; r<iplImage->height; r++)
 					{
 						unsigned short * buffer3 = (unsigned short *)(iplImage->imageData
-										+ r * iplImage->widthStep);
+																	  + r * iplImage->widthStep);
 						int pos3 = 0;
 						int pos4 = r * orig_width;
 						for(int c=0; c<orig_width; c++, pos3++, pos4++)
@@ -315,7 +315,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					for(int r=0; r<iplImage->height; r++)
 					{
 						unsigned short * buffer3 = (unsigned short *)(iplImage->imageData
-										+ r * iplImage->widthStep);
+																	  + r * iplImage->widthStep);
 						int pos3 = 0;
 						int pos4 = r * orig_width;
 						for(int c=0; c<orig_width; c++, pos3++, pos4++)
@@ -356,7 +356,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					for(int r=0; r<iplImage->height; r++)
 					{
 						short * buffer3 = (short *)(iplImage->imageData
-											+ r * iplImage->widthStep);
+													+ r * iplImage->widthStep);
 						int pos3 = 0;
 						int pos4 = r * orig_width;
 						for(int c=0; c<orig_width; c++, pos3++, pos4++)
@@ -368,23 +368,26 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					}
 			}
 		}
-		}break;
+	}break;
 	}
 
-	if(qImage.depth() == 8) {
+	if(qImage.depth() == 8)
+	{
+#ifndef ANDROID
 		qImage.setNumColors(256);
 
 		for(int c=0; c<256; c++) {
 			/* False colors
-			int R=c, G=c, B=c;
-			if(c<128) B = (255-2*c); else B = 0;
-			if(c>128) R = 2*(c-128); else R = 0;
-			G = abs(128-c)*2;
+   int R=c, G=c, B=c;
+   if(c<128) B = (255-2*c); else B = 0;
+   if(c>128) R = 2*(c-128); else R = 0;
+   G = abs(128-c)*2;
 
-			qImage.setColor(c, qRgb(R,G,B));
-			*/
+   qImage.setColor(c, qRgb(R,G,B));
+   */
 			qImage.setColor(c, qRgb(c,c,c));
 		}
+#endif
 	}
 	return qImage;
 }
@@ -407,155 +410,163 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 }
 
 void WAFMainWindow::on_deskButton_clicked() {
-    QPoint curpos = QApplication::activeWindow()->pos();
-    QRect currect = QApplication::activeWindow()->rect();
-    QPoint imgPos = QApplication::activeWindow()->geometry().topLeft();
-    QRect imgRect = ui->imageLabel->rect();
-/*
-    fprintf(stderr, "%s:%d: curpos=%dx%d +%dx%d imageLabel=%d,%d rect=%d,%d+%dx%d\n",
-            __func__, __LINE__,
-            curpos.x(), curpos.y(),
-            currect.width(), currect.height(),
-            imgPos.x(), imgPos.y(),
-            imgRect.x(), imgRect.y(),
-            imgRect.width(), imgRect.height()
-            );
+	QPoint curpos = QApplication::activeWindow()->pos();
+	QRect currect = QApplication::activeWindow()->rect();
+	QPoint imgPos = QApplication::activeWindow()->geometry().topLeft();
+	QRect imgRect = ui->imageLabel->rect();
+	/*
+	fprintf(stderr, "%s:%d: curpos=%dx%d +%dx%d imageLabel=%d,%d rect=%d,%d+%dx%d\n",
+			__func__, __LINE__,
+			curpos.x(), curpos.y(),
+			currect.width(), currect.height(),
+			imgPos.x(), imgPos.y(),
+			imgRect.x(), imgRect.y(),
+			imgRect.width(), imgRect.height()
+			);
 */
-    m_grabRect = QRect(imgPos.x()+1, imgPos.y()+1,
-                       imgRect.width(), imgRect.height());
-    hide();
-    QTimer::singleShot(100, this, SLOT(on_grabTimer_timeout()));
+	m_grabRect = QRect(imgPos.x()+1, imgPos.y()+1,
+					   imgRect.width(), imgRect.height());
+	hide();
+	QTimer::singleShot(500, this, SLOT(slot_grabTimer_timeout()));
 }
 
-void WAFMainWindow::on_grabTimer_timeout() {
+void WAFMainWindow::slot_grabTimer_timeout() {
 
-    QPixmap desktopPixmap = QPixmap::grabWindow(
-            //QApplication::activeWindow()->winId());
-            QApplication::desktop()->winId());
-  /*  fprintf(stderr, "%s:%d: desktopImage=%dx%dx%d\n",
-            __func__, __LINE__,
-            desktopPixmap.width(), desktopPixmap.height(), desktopPixmap.depth());
+	QPixmap desktopPixmap = QPixmap::grabWindow(
+				//QApplication::activeWindow()->winId());
+				QApplication::desktop()->winId());
+	/*  fprintf(stderr, "%s:%d: desktopImage=%dx%dx%d\n",
+			__func__, __LINE__,
+			desktopPixmap.width(), desktopPixmap.height(), desktopPixmap.depth());
 */
-    //QApplication::activeWindow()->show();
+	//QApplication::activeWindow()->show();
 
-    // Crop where the window is
+	// Crop where the window is
 
 	fprintf(stderr, "%s:%d: curpos=%dx%d+%dx%d\n",
-            __func__, __LINE__,
-            m_grabRect.x(), m_grabRect.y(),
-            m_grabRect.width(), m_grabRect.height());
+			__func__, __LINE__,
+			m_grabRect.x(), m_grabRect.y(),
+			m_grabRect.width(), m_grabRect.height());
 
-    QImage desktopImage;
-    desktopImage = ( desktopPixmap.copy(m_grabRect).toImage() );
+	QImage desktopImage;
+	desktopImage = ( desktopPixmap.copy(m_grabRect).toImage() );
 
-    if(desktopImage.isNull()) return;
-   /* fprintf(stderr, "%s:%d: desktopImage=%dx%dx%d\n",
-            __func__, __LINE__,
-            desktopImage.width(), desktopImage.height(), desktopImage.depth());
+	if(desktopImage.isNull()) return;
+	/* fprintf(stderr, "%s:%d: desktopImage=%dx%dx%d\n",
+			__func__, __LINE__,
+			desktopImage.width(), desktopImage.height(), desktopImage.depth());
 */
 
-    IplImage * header = cvCreateImageHeader(cvSize(desktopImage.width(), desktopImage.height()),
-                                            IPL_DEPTH_8U, desktopImage.depth()/8);
-    header->imageData = (char *)desktopImage.bits();
-    m_wafMeter.setUnscaledImage(header);
-    t_waf_info waf = m_wafMeter.getWAF();
+	IplImage * header = cvCreateImageHeader(cvSize(desktopImage.width(), desktopImage.height()),
+											IPL_DEPTH_8U, desktopImage.depth()/8);
+	header->imageData = (char *)desktopImage.bits();
+	m_wafMeter.setUnscaledImage(header);
+	t_waf_info waf = m_wafMeter.getWAF();
 
 
-    //QApplication::activeWindow()->move(m_grabRect.topLeft());
+	//QApplication::activeWindow()->move(m_grabRect.topLeft());
 
-    // Display images
-    displayWAFMeasure(waf, header);
+	// Display images
+	displayWAFMeasure(waf, header);
 
-    show();
+	show();
 
-    cvReleaseImageHeader(&header);
+	cvReleaseImageHeader(&header);
 }
 
 void WAFMainWindow::on_snapButton_clicked() {
-    if(resultImage.isNull()) return;
+	if(resultImage.isNull()) return;
 
-    // Assemblate file name
-    QDir snapDir(QDir::homePath());
-    snapDir.cd(tr("Desktop"));
+	// Assemblate file name
+	QDir snapDir(QDir::homePath());
+	snapDir.cd(tr("Desktop"));
 
 
-    QString wafStr;
-    wafStr.sprintf("%02d", (int)roundf(m_waf.waf_factor*100.f));
-    QString dateStr = QDateTime::currentDateTime().toString(tr("yyyy-MM-dd_hhmmss"));
+	QString wafStr;
+	wafStr.sprintf("%02d", (int)roundf(m_waf.waf_factor*100.f));
+	QString dateStr = QDateTime::currentDateTime().toString(tr("yyyy-MM-dd_hhmmss"));
 
-    QString filepath = snapDir.absoluteFilePath("WAF_" + dateStr + "waf=" + wafStr + "perc.png");
+	QString filepath = snapDir.absoluteFilePath("WAF_" + dateStr + "waf=" + wafStr + "perc.png");
 
-    resultImage.save( filepath,
-                      "PNG");
+	resultImage.save( filepath,
+					  "PNG");
 }
 
 void WAFMainWindow::displayWAFMeasure(t_waf_info waf, IplImage * iplImage)
 {
 	// Display
 	if(!iplImage) return;
-        m_waf = waf;
+	m_waf = waf;
 	// load image to display
 	QImage qtImage = iplImageToQImage(iplImage);
 	QImage scaledImg = qtImage.scaled(
 				ui->imageLabel->width(),
 				ui->imageLabel->height(),
-                                Qt::KeepAspectRatio
+				Qt::KeepAspectRatio
 				);
 	/*
 
-	 QPainter::CompositionMode mode = currentMode();
+  QPainter::CompositionMode mode = currentMode();
 
-	 QPainter painter(&resultImage);
-	 painter.setCompositionMode(QPainter::CompositionMode_Source);
-	 painter.fillRect(resultImage.rect(), Qt::transparent);
-	 painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-	 painter.drawImage(0, 0, destinationImage);
-	 painter.setCompositionMode(mode);
-	 painter.drawImage(0, 0, sourceImage);
-	 painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
-	 painter.fillRect(resultImage.rect(), Qt::white);
-	 painter.end();
+  QPainter painter(&resultImage);
+  painter.setCompositionMode(QPainter::CompositionMode_Source);
+  painter.fillRect(resultImage.rect(), Qt::transparent);
+  painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+  painter.drawImage(0, 0, destinationImage);
+  painter.setCompositionMode(mode);
+  painter.drawImage(0, 0, sourceImage);
+  painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
+  painter.fillRect(resultImage.rect(), Qt::white);
+  painter.end();
 
-	 resultLabel->setPixmap(QPixmap::fromImage(resultImage));
-	*/
+  resultLabel->setPixmap(QPixmap::fromImage(resultImage));
+ */
 
-//	QImage resultImage(ui->imageLabel->width(),
-//					   ui->imageLabel->height(),
-//                                           QImage::Format_ARGB32_Premultiplied);
-        resultImage = qtImage.scaled(
-                ui->imageLabel->width(),
-                ui->imageLabel->height(),
-                Qt::IgnoreAspectRatio
-                );
+	//	QImage resultImage(ui->imageLabel->width(),
+	//					   ui->imageLabel->height(),
+	//                                           QImage::Format_ARGB32_Premultiplied);
+	resultImage = qtImage.scaled(
+				ui->imageLabel->width(),
+				ui->imageLabel->height(),
+				Qt::IgnoreAspectRatio
+				);
 
 	QPainter painter(&resultImage);
 
-        QImage destinationImage = decorImage;
-        QImage sourceImage = scaledImg;
-        sourceImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+	QImage destinationImage = decorImage;
+	QImage sourceImage = scaledImg;
+	sourceImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
 
 	//QImage alphaMask = decorImage.createMaskFromColor(qRgb(0,0,0));
 	//decorImage.setAlphaChannel(alphaMask);
 	painter.setCompositionMode(QPainter::CompositionMode_Source);
 	painter.fillRect(resultImage.rect(), Qt::transparent);
 	painter.setCompositionMode(QPainter::CompositionMode_Source);
-        painter.fillRect(resultImage.rect(), Qt::white);
+	painter.fillRect(resultImage.rect(), Qt::white);
 	painter.drawImage((resultImage.width() - sourceImage.width())/2,
 					  0, sourceImage);
 	painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
 	painter.drawImage(0, 0, destinationImage);
 	painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
-//        painter.fillRect(resultImage.rect(), Qt::white);
+	//        painter.fillRect(resultImage.rect(), Qt::white);
 
 	painter.setCompositionMode(QPainter::CompositionMode_Source);
 
 
-        // Display waf with dial ----------------------------------------------
-        painter.setRenderHint(QPainter::Antialiasing, true);
-        // Margin on both sides of of the dial
+	// Display waf with dial ----------------------------------------------
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	// Margin on both sides of of the dial
 	float theta_min = 0.05;
 	float theta = (3.1415927-2*theta_min) * (1. - waf.waf_factor) + theta_min;
-	float r = 130.f;
+
+	int radius_in = ui->imageLabel->width()/2;
+
+	float r = radius_in - 10;
+
+	QPoint dial_center(ui->imageLabel->width()/2,
+					   ui->imageLabel->height());
+
+//	QPoint dial_center(160, 416);
 
 	// Center of background image : 160, 416
 	QPen pen(qRgb(255,0,0));
@@ -567,60 +578,67 @@ void WAFMainWindow::displayWAFMeasure(t_waf_info waf, IplImage * iplImage)
 	pen.setColor(qRgba(10,10,10, 32));
 	pen.setWidth(5);
 	painter.setPen(pen);
-	r = 140;
+	r = radius_in;
 	theta = (3.1415927-2*theta_min) * (1. - waf.waf_factor) + theta_min;
-	painter.drawLine(QPoint(160, 416),
-					 QPoint(160+r * cos(theta), 416-r*sin(theta)));
-	r = 125;
+	painter.drawLine(QPoint(dial_center.x(), dial_center.y()),
+					 QPoint(dial_center.x()+r * cos(theta), dial_center.y()-r*sin(theta)));
+	r = radius_in-15;
 
 	// draw shape with gray
 	pen.setColor(qRgb(214,214,214));
 	pen.setWidth(3);
 	painter.setPen(pen);
-	r = 120;
+	r = radius_in-20;
 	theta = (3.1415927-2*theta_min) * (1. - waf.contour_factor) + theta_min;
-	painter.drawLine(QPoint(160, 416),
-					 QPoint(160+r * cos(theta), 416-r*sin(theta)));
+	painter.drawLine(QPoint(dial_center.x(),
+							dial_center.y()),
+					 QPoint(dial_center.x() +r * cos(theta),
+							dial_center.y()-r*sin(theta)));
 
 	// draw color with green
 	pen.setColor(qRgb(127,255,0));
-	r = 120;
+	r = radius_in-20;
 	theta = (3.1415927-2*theta_min) * (1. - waf.color_factor) + theta_min;
 	pen.setWidth(3);
 	painter.setPen(pen);
-	painter.drawLine(QPoint(160, 416),
-					 QPoint(160+r * cos(theta), 416-r*sin(theta)));
-	r = 100;
+	painter.drawLine(QPoint(dial_center.x(),
+							dial_center.y()),
+					 QPoint(dial_center.x() + r * cos(theta),
+							dial_center.y() - r*sin(theta)));
+	r = radius_in-40;
 	pen.setWidth(6);
 	painter.setPen(pen);
-	painter.drawEllipse(QPoint(160+r * cos(theta), 416-r*sin(theta)), 3, 3);
+	painter.drawEllipse(QPoint(dial_center.x() + r * cos(theta),
+							   dial_center.y() - r * sin(theta)),
+						3, 3);
 
 
 
 	pen.setWidth(16);
 	pen.setColor(qRgb(127,127,127));
 	painter.setPen(pen);
-        painter.drawEllipse(QPoint(160+1, 416-1), 8,8);
+	painter.drawEllipse(QPoint(dial_center.x()+1, dial_center.y()-1), 8,8);
 	pen.setColor(qRgba(10,10,10, 128));
 	painter.setPen(pen);
-	painter.drawEllipse(QPoint(160, 416), 8,8);
-        painter.end();
+	painter.drawEllipse(dial_center, 8, 8);
+	painter.end();
 
 
-        QPixmap localPixmap = QPixmap::fromImage(resultImage);
-        ui->imageLabel->setPixmap(localPixmap);
+	QPixmap localPixmap = QPixmap::fromImage(resultImage);
+	ui->imageLabel->setPixmap(localPixmap);
 
 	/*
-	QString dialname=":/icons/Dialer.png";
-	QImage pixmap(dialname);
-	pixmap = pixmap.convertToFormat(QImage::Format_Indexed8);
-	pixmap.setNumColors(256);
-	for(int col = 0; col < 256; col++)
-		pixmap.setColor(col, qRgb(col, col, col));
-	int arrow = (int)(255.f * waf.waf_factor);
-	pixmap.setColor(arrow, qRgb(255, 0, 0));
-	ui->dialLabel->setPixmap(QPixmap(pixmap));
-*/
+	 QString dialname=":/icons/Dialer.png";
+	 QImage pixmap(dialname);
+	 pixmap = pixmap.convertToFormat(QImage::Format_Indexed8);
+	 pixmap.setNumColors(256);
+	 for(int col = 0; col < 256; col++)
+	  pixmap.setColor(col, qRgb(col, col, col));
+	 int arrow = (int)(255.f * waf.waf_factor);
+	 pixmap.setColor(arrow, qRgb(255, 0, 0));
+	 ui->dialLabel->setPixmap(QPixmap(pixmap));
+	*/
+
 }
 
 CvCapture* capture = 0;
@@ -642,12 +660,12 @@ void WAFMainWindow::on_camButton_toggled(bool checked)
 	}
 
 	if(!capture) {
-                int retry = 0;
+		int retry = 0;
 		do {
 			capture = cvCreateCameraCapture (retry);
 			retry++;
 		} while(!capture && retry < 4);
-                fprintf(stderr, "%s:%d : capture=%p\n", __func__, __LINE__, capture);
+		fprintf(stderr, "%s:%d : capture=%p\n", __func__, __LINE__, capture);
 	}
 	if(!capture) { return ; }
 
@@ -673,8 +691,8 @@ void WAFMainWindow::on_movieButton_toggled(bool checked)
 
 	if(!capture) {
 		QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
-							 m_path,
-							 tr("Movies (*.avi *.mp* *.mov)"));
+														m_path,
+														tr("Movies (*.avi *.mp* *.mov)"));
 		if(fileName.isEmpty()) return;
 
 		QFileInfo fi(fileName);
@@ -701,13 +719,13 @@ void WAFMainWindow::startBackgroundThread() {
 	m_pWAFMeterThread->start();
 
 	if(!m_timer.isActive()) {
-          //  m_timer.start(40); // 25 fps
-            m_timer.start(100); // 10 fps
-        }
+		//  m_timer.start(40); // 25 fps
+		m_timer.start(100); // 10 fps
+	}
 
 }
 
-void WAFMainWindow::on_m_timer_timeout() {
+void WAFMainWindow::slot_m_timer_timeout() {
 	if(!capture) {
 		m_timer.stop();
 		return;
@@ -735,7 +753,7 @@ void WAFMainWindow::on_m_timer_timeout() {
 
 /**************************************************************************
 
-					BACKGROUND ANALYSIS THREAD
+	 BACKGROUND ANALYSIS THREAD
 
 **************************************************************************/
 WAFMeterThread::WAFMeterThread(WAFMeter * pWAFmeter) {
@@ -770,42 +788,42 @@ void WAFMeterThread::run()
 
 	while(m_run) {
 		if(m_capture && m_pWAFmeter) {
-                       IplImage * frame = cvQueryFrame( m_capture );
+			IplImage * frame = cvQueryFrame( m_capture );
 
-                       if( !frame) { //!cvGrabFrame( m_capture ) ) {
+			if( !frame) { //!cvGrabFrame( m_capture ) ) {
 				fprintf(stderr, "%s:%d : capture=%p FAILED\n", __func__, __LINE__, capture);
-                                sleep(1);
+				sleep(1);
 				sleep(2);
 
 			} else {
 				// fprintf(stderr, "%s:%d : capture=%p ok, iteration=%d\n",
 				//		__func__, __LINE__, m_capture, m_iteration);
-                                //IplImage * frame = cvRetrieveFrame( m_capture );
-                                 if(!frame) {
-                                    fprintf(stderr, "%s:%d : cvRetrieveFrame(capture=%p) FAILED\n", __func__, __LINE__, capture);
-                                    sleep(1);
-                                } else {
-                                    m_pWAFmeter->setUnscaledImage(frame);
-                                    m_waf = m_pWAFmeter->getWAF();
-                                    m_iteration++;
+				//IplImage * frame = cvRetrieveFrame( m_capture );
+				if(!frame) {
+					fprintf(stderr, "%s:%d : cvRetrieveFrame(capture=%p) FAILED\n", __func__, __LINE__, capture);
+					sleep(1);
+				} else {
+					m_pWAFmeter->setUnscaledImage(frame);
+					m_waf = m_pWAFmeter->getWAF();
+					m_iteration++;
 
-                                    // copy image
-                                    // Check if size changed
-                                    if(m_inputImage &&
-                                       (m_inputImage->width != frame->width
-                                            || m_inputImage->height != frame->height)) {
-                                            tmReleaseImage(&m_inputImage);
-                                    }
+					// copy image
+					// Check if size changed
+					if(m_inputImage &&
+							(m_inputImage->width != frame->width
+							 || m_inputImage->height != frame->height)) {
+						tmReleaseImage(&m_inputImage);
+					}
 
-                                    if(!m_inputImage) {
-                                            m_inputImage = tmCreateImage(cvGetSize(frame), IPL_DEPTH_8U, frame->nChannels);
-                                            fprintf(stderr, "%s:%d : capture=%p "
-                                                            "=> realloc img %dx%dx%d\n", __func__, __LINE__,
-                                                            capture,
-                                                            frame->width, frame->height, frame->nChannels);
-                                    }
-                                    cvCopy(frame, m_inputImage);
-                                }
+					if(!m_inputImage) {
+						m_inputImage = tmCreateImage(cvGetSize(frame), IPL_DEPTH_8U, frame->nChannels);
+						fprintf(stderr, "%s:%d : capture=%p "
+								"=> realloc img %dx%dx%d\n", __func__, __LINE__,
+								capture,
+								frame->width, frame->height, frame->nChannels);
+					}
+					cvCopy(frame, m_inputImage);
+				}
 			}
 		} else {
 			sleep(1);

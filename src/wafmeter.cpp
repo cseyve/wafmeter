@@ -25,6 +25,8 @@
 #include "wafmeter.h"
 #include "imgutils.h"
 
+#include <stdio.h>
+
 #define MUNORM(a) (((a)<0.f) ? 0.f : ( ((a)>1.f) ? 1.f : (a)))
 
 

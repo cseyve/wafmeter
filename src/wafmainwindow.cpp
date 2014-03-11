@@ -26,11 +26,195 @@
 #include "ui_wafmainwindow.h"
 #include <QFileDialog>
 #include "imgutils.h"
-#include <QPainter>
+
 #include <QDateTime>
 #include <QDesktopWidget>
+#include <QPaintEvent>
+#include <QPainter>
+
+QImage iplImageToQImage(IplImage * iplImage);
 
 u8 mode_file = 0;
+
+WAFLabel::WAFLabel(QWidget *parent)
+	: QLabel(parent)
+{
+	// load display image
+	m_decorImage.load(":icons/Interface-montage.png");
+	m_decorImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+
+	//
+
+}
+
+void WAFLabel::displayWAFMeasure(t_waf_info waf, IplImage * iplImage)
+{
+	m_waf = waf;
+	m_inputImage = iplImageToQImage(iplImage);
+
+	update();
+}
+
+void WAFLabel::paintEvent(QPaintEvent * e)
+{
+	QRect cr = rect();
+
+	// load image to display
+	QImage scaledImg = m_inputImage.scaled(
+				cr.width(),
+				cr.height(),
+				Qt::KeepAspectRatio
+				);
+	/*
+
+  QPainter::CompositionMode mode = currentMode();
+
+  QPainter painter(&resultImage);
+  painter.setCompositionMode(QPainter::CompositionMode_Source);
+  painter.fillRect(resultImage.rect(), Qt::transparent);
+  painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+  painter.drawImage(0, 0, destinationImage);
+  painter.setCompositionMode(mode);
+  painter.drawImage(0, 0, sourceImage);
+  painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
+  painter.fillRect(resultImage.rect(), Qt::white);
+  painter.end();
+
+  resultLabel->setPixmap(QPixmap::fromImage(resultImage));
+ */
+	if(m_inputImage.isNull())
+	{
+		m_inputImage = QImage( cr.size(), QImage::Format_ARGB32 );
+		m_inputImage.fill(255);
+	}
+
+	//	QImage resultImage(ui->imageLabel->width(),
+	//					   ui->imageLabel->height(),
+	//                                           QImage::Format_ARGB32_Premultiplied);
+	resultImage = m_inputImage.scaled(
+				cr.width(),
+				cr.height(),
+				Qt::IgnoreAspectRatio );
+
+	QPainter painter(&resultImage);
+
+	QImage destinationImage = m_decorImage.scaled(cr.width(),
+												cr.width(), // twice width to force to be dow
+												Qt::KeepAspectRatio);
+	QImage sourceImage = scaledImg;
+	sourceImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+
+	//QImage alphaMask = decorImage.createMaskFromColor(qRgb(0,0,0));
+	//decorImage.setAlphaChannel(alphaMask);
+	painter.setCompositionMode(QPainter::CompositionMode_Source);
+	painter.fillRect(resultImage.rect(), Qt::transparent);
+
+	painter.setCompositionMode(QPainter::CompositionMode_Source);
+	painter.fillRect(resultImage.rect(), Qt::white);
+	// Draw input image on top, centered
+	painter.drawImage((resultImage.width() - sourceImage.width())/2,
+					  0, sourceImage);
+
+	painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+	// Draw dials on bottom
+	painter.drawImage(0, cr.height()-destinationImage.height(),
+					  destinationImage);
+	painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
+	//        painter.fillRect(resultImage.rect(), Qt::white);
+
+	painter.setCompositionMode(QPainter::CompositionMode_Source);
+
+
+	// Display waf with dial ----------------------------------------------
+	painter.setRenderHint(QPainter::Antialiasing, true);
+	// Margin on both sides of of the dial
+	float theta_min = 0.05;
+	float theta = (3.1415927-2*theta_min) * (1. - m_waf.waf_factor) + theta_min;
+
+	int radius_in = cr.width()/2;
+
+	float r = radius_in - 10;
+
+	QPoint dial_center(cr.width()/2,
+					   cr.height());
+
+//	QPoint dial_center(160, 416);
+
+	// Center of background image : 160, 416
+	QPen pen(qRgb(255,0,0));
+	pen.setWidth(2);
+	pen.setCapStyle(Qt::RoundCap);
+
+	// Draw main result first, to draw smaller dial over it
+	pen.setColor(qRgb(0,0,0));
+	pen.setColor(qRgba(10,10,10, 32));
+	pen.setWidth(5);
+	painter.setPen(pen);
+	r = radius_in;
+	theta = (3.1415927-2*theta_min) * (1. - m_waf.waf_factor) + theta_min;
+	painter.drawLine(QPoint(dial_center.x(), dial_center.y()),
+					 QPoint(dial_center.x()+r * cos(theta), dial_center.y()-r*sin(theta)));
+	r = radius_in-15;
+
+	// draw shape with gray
+	pen.setColor(qRgb(214,214,214));
+	pen.setWidth(3);
+	painter.setPen(pen);
+	r = radius_in-20;
+	theta = (3.1415927-2*theta_min) * (1. - m_waf.contour_factor) + theta_min;
+	painter.drawLine(QPoint(dial_center.x(),
+							dial_center.y()),
+					 QPoint(dial_center.x() +r * cos(theta),
+							dial_center.y()-r*sin(theta)));
+
+	// draw color with green
+	pen.setColor(qRgb(127,255,0));
+	r = radius_in-20;
+	theta = (3.1415927-2*theta_min) * (1. - m_waf.color_factor) + theta_min;
+	pen.setWidth(3);
+	painter.setPen(pen);
+	painter.drawLine(QPoint(dial_center.x(),
+							dial_center.y()),
+					 QPoint(dial_center.x() + r * cos(theta),
+							dial_center.y() - r*sin(theta)));
+	r = radius_in-40;
+	pen.setWidth(6);
+	painter.setPen(pen);
+	painter.drawEllipse(QPoint(dial_center.x() + r * cos(theta),
+							   dial_center.y() - r * sin(theta)),
+						3, 3);
+
+
+
+	pen.setWidth(16);
+	pen.setColor(qRgb(127,127,127));
+	painter.setPen(pen);
+	painter.drawEllipse(QPoint(dial_center.x()+1, dial_center.y()-1), 8,8);
+	pen.setColor(qRgba(10,10,10, 128));
+	painter.setPen(pen);
+	painter.drawEllipse(dial_center, 8, 8);
+	painter.end();
+
+
+//	QPixmap localPixmap = QPixmap::fromImage(resultImage);
+//	ui->imageLabel->setPixmap(localPixmap);
+
+	/*
+	 QString dialname=":/icons/Dialer.png";
+	 QImage pixmap(dialname);
+	 pixmap = pixmap.convertToFormat(QImage::Format_Indexed8);
+	 pixmap.setNumColors(256);
+	 for(int col = 0; col < 256; col++)
+	  pixmap.setColor(col, qRgb(col, col, col));
+	 int arrow = (int)(255.f * waf.waf_factor);
+	 pixmap.setColor(arrow, qRgb(255, 0, 0));
+	 ui->dialLabel->setPixmap(QPixmap(pixmap));
+	*/
+	QPainter p( this );
+	p.drawImage(0,0, resultImage);
+	p.end();
+
+}
 
 WAFMainWindow::WAFMainWindow(QWidget *parent)
 	: QMainWindow(parent), ui(new Ui::WAFMainWindow)
@@ -52,8 +236,6 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 
 	connect(&m_timer, SIGNAL(timeout()), this, SLOT(slot_m_timer_timeout()));
 
-	decorImage.load(":icons/Interface-montage.png");
-	decorImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
 
 
 	// Load hue scale from ressource file (easier to deploy application)
@@ -494,151 +676,12 @@ void WAFMainWindow::on_snapButton_clicked() {
 
 void WAFMainWindow::displayWAFMeasure(t_waf_info waf, IplImage * iplImage)
 {
+
 	// Display
 	if(!iplImage) return;
 	m_waf = waf;
-	// load image to display
-	QImage qtImage = iplImageToQImage(iplImage);
-	QImage scaledImg = qtImage.scaled(
-				ui->imageLabel->width(),
-				ui->imageLabel->height(),
-				Qt::KeepAspectRatio
-				);
-	/*
 
-  QPainter::CompositionMode mode = currentMode();
-
-  QPainter painter(&resultImage);
-  painter.setCompositionMode(QPainter::CompositionMode_Source);
-  painter.fillRect(resultImage.rect(), Qt::transparent);
-  painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-  painter.drawImage(0, 0, destinationImage);
-  painter.setCompositionMode(mode);
-  painter.drawImage(0, 0, sourceImage);
-  painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
-  painter.fillRect(resultImage.rect(), Qt::white);
-  painter.end();
-
-  resultLabel->setPixmap(QPixmap::fromImage(resultImage));
- */
-
-	//	QImage resultImage(ui->imageLabel->width(),
-	//					   ui->imageLabel->height(),
-	//                                           QImage::Format_ARGB32_Premultiplied);
-	resultImage = qtImage.scaled(
-				ui->imageLabel->width(),
-				ui->imageLabel->height(),
-				Qt::IgnoreAspectRatio
-				);
-
-	QPainter painter(&resultImage);
-
-	QImage destinationImage = decorImage;
-	QImage sourceImage = scaledImg;
-	sourceImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
-
-	//QImage alphaMask = decorImage.createMaskFromColor(qRgb(0,0,0));
-	//decorImage.setAlphaChannel(alphaMask);
-	painter.setCompositionMode(QPainter::CompositionMode_Source);
-	painter.fillRect(resultImage.rect(), Qt::transparent);
-	painter.setCompositionMode(QPainter::CompositionMode_Source);
-	painter.fillRect(resultImage.rect(), Qt::white);
-	painter.drawImage((resultImage.width() - sourceImage.width())/2,
-					  0, sourceImage);
-	painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-	painter.drawImage(0, 0, destinationImage);
-	painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
-	//        painter.fillRect(resultImage.rect(), Qt::white);
-
-	painter.setCompositionMode(QPainter::CompositionMode_Source);
-
-
-	// Display waf with dial ----------------------------------------------
-	painter.setRenderHint(QPainter::Antialiasing, true);
-	// Margin on both sides of of the dial
-	float theta_min = 0.05;
-	float theta = (3.1415927-2*theta_min) * (1. - waf.waf_factor) + theta_min;
-
-	int radius_in = ui->imageLabel->width()/2;
-
-	float r = radius_in - 10;
-
-	QPoint dial_center(ui->imageLabel->width()/2,
-					   ui->imageLabel->height());
-
-//	QPoint dial_center(160, 416);
-
-	// Center of background image : 160, 416
-	QPen pen(qRgb(255,0,0));
-	pen.setWidth(2);
-	pen.setCapStyle(Qt::RoundCap);
-
-	// Draw main result first, to draw smaller dial over it
-	pen.setColor(qRgb(0,0,0));
-	pen.setColor(qRgba(10,10,10, 32));
-	pen.setWidth(5);
-	painter.setPen(pen);
-	r = radius_in;
-	theta = (3.1415927-2*theta_min) * (1. - waf.waf_factor) + theta_min;
-	painter.drawLine(QPoint(dial_center.x(), dial_center.y()),
-					 QPoint(dial_center.x()+r * cos(theta), dial_center.y()-r*sin(theta)));
-	r = radius_in-15;
-
-	// draw shape with gray
-	pen.setColor(qRgb(214,214,214));
-	pen.setWidth(3);
-	painter.setPen(pen);
-	r = radius_in-20;
-	theta = (3.1415927-2*theta_min) * (1. - waf.contour_factor) + theta_min;
-	painter.drawLine(QPoint(dial_center.x(),
-							dial_center.y()),
-					 QPoint(dial_center.x() +r * cos(theta),
-							dial_center.y()-r*sin(theta)));
-
-	// draw color with green
-	pen.setColor(qRgb(127,255,0));
-	r = radius_in-20;
-	theta = (3.1415927-2*theta_min) * (1. - waf.color_factor) + theta_min;
-	pen.setWidth(3);
-	painter.setPen(pen);
-	painter.drawLine(QPoint(dial_center.x(),
-							dial_center.y()),
-					 QPoint(dial_center.x() + r * cos(theta),
-							dial_center.y() - r*sin(theta)));
-	r = radius_in-40;
-	pen.setWidth(6);
-	painter.setPen(pen);
-	painter.drawEllipse(QPoint(dial_center.x() + r * cos(theta),
-							   dial_center.y() - r * sin(theta)),
-						3, 3);
-
-
-
-	pen.setWidth(16);
-	pen.setColor(qRgb(127,127,127));
-	painter.setPen(pen);
-	painter.drawEllipse(QPoint(dial_center.x()+1, dial_center.y()-1), 8,8);
-	pen.setColor(qRgba(10,10,10, 128));
-	painter.setPen(pen);
-	painter.drawEllipse(dial_center, 8, 8);
-	painter.end();
-
-
-	QPixmap localPixmap = QPixmap::fromImage(resultImage);
-	ui->imageLabel->setPixmap(localPixmap);
-
-	/*
-	 QString dialname=":/icons/Dialer.png";
-	 QImage pixmap(dialname);
-	 pixmap = pixmap.convertToFormat(QImage::Format_Indexed8);
-	 pixmap.setNumColors(256);
-	 for(int col = 0; col < 256; col++)
-	  pixmap.setColor(col, qRgb(col, col, col));
-	 int arrow = (int)(255.f * waf.waf_factor);
-	 pixmap.setColor(arrow, qRgb(255, 0, 0));
-	 ui->dialLabel->setPixmap(QPixmap(pixmap));
-	*/
-
+	ui->imageLabel->displayWAFMeasure(waf, iplImage);
 }
 
 CvCapture* capture = 0;
@@ -674,9 +717,12 @@ void WAFMainWindow::on_camButton_toggled(bool checked)
 
 void WAFMainWindow::on_movieButton_toggled(bool checked)
 {
-	if(!checked) {
+	if(!checked)
+	{
 		if(m_timer.isActive())
+		{
 			m_timer.stop();
+		}
 
 		// Stop thread
 		if(m_pWAFMeterThread) {
@@ -725,7 +771,8 @@ void WAFMainWindow::startBackgroundThread() {
 
 }
 
-void WAFMainWindow::slot_m_timer_timeout() {
+void WAFMainWindow::slot_m_timer_timeout()
+{
 	if(!capture) {
 		m_timer.stop();
 		return;

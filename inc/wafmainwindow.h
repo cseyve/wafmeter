@@ -28,6 +28,7 @@
 #include <QTimer>
 #include <QMainWindow>
 #include <QThread>
+#include <QLabel>
 
 #include "wafmeter.h"
 
@@ -80,6 +81,26 @@ private:
 
 	IplImage * m_inputImage;
 	CvCapture * m_capture;
+};
+
+/** @brief Main WAFmeter window
+  */
+class WAFLabel : public QLabel
+{
+	Q_OBJECT
+
+public:
+	WAFLabel(QWidget *parent = 0);
+
+	void paintEvent(QPaintEvent *);
+	void displayWAFMeasure(t_waf_info waf, IplImage * iplImage);
+
+private:
+	QImage m_decorImage; ///< image used for dials => foreground
+	QImage m_inputImage; ///< image used for processing=> background
+
+	QImage resultImage;
+	t_waf_info m_waf;
 };
 
 /** @brief Main WAFmeter window

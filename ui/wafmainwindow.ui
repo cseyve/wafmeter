@@ -2,6 +2,14 @@
 <ui version="4.0">
  <class>WAFMainWindow</class>
  <widget class="QMainWindow" name="WAFMainWindow">
+  <property name="geometry">
+   <rect>
+    <x>0</x>
+    <y>0</y>
+    <width>323</width>
+    <height>455</height>
+   </rect>
+  </property>
   <property name="windowTitle">
    <string>WAF Meter</string>
   </property>
@@ -20,16 +28,7 @@
     </sizepolicy>
    </property>
    <layout class="QGridLayout" name="gridLayout">
-    <property name="leftMargin">
-     <number>1</number>
-    </property>
-    <property name="topMargin">
-     <number>1</number>
-    </property>
-    <property name="rightMargin">
-     <number>1</number>
-    </property>
-    <property name="bottomMargin">
+    <property name="margin">
      <number>1</number>
     </property>
     <item row="0" column="0">
@@ -38,20 +37,11 @@
        <property name="spacing">
         <number>0</number>
        </property>
-       <property name="leftMargin">
-        <number>0</number>
-       </property>
-       <property name="topMargin">
-        <number>0</number>
-       </property>
-       <property name="rightMargin">
-        <number>0</number>
-       </property>
-       <property name="bottomMargin">
+       <property name="margin">
         <number>0</number>
        </property>
        <item>
-        <widget class="QLabel" name="imageLabel">
+        <widget class="WAFLabel" name="imageLabel">
          <property name="styleSheet">
           <string notr="true">background-color: rgba(0,0,0,255);</string>
          </property>
@@ -78,16 +68,7 @@
           <property name="spacing">
            <number>2</number>
           </property>
-          <property name="leftMargin">
-           <number>1</number>
-          </property>
-          <property name="topMargin">
-           <number>1</number>
-          </property>
-          <property name="rightMargin">
-           <number>1</number>
-          </property>
-          <property name="bottomMargin">
+          <property name="margin">
            <number>1</number>
           </property>
           <item>
@@ -231,6 +212,13 @@
   </widget>
  </widget>
  <layoutdefault spacing="6" margin="11"/>
+ <customwidgets>
+  <customwidget>
+   <class>WAFLabel</class>
+   <extends>QLabel</extends>
+   <header>wafmainwindow.h</header>
+  </customwidget>
+ </customwidgets>
  <resources>
   <include location="../WAFmeter.qrc"/>
  </resources>

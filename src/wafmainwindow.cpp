@@ -51,8 +51,21 @@ void WAFLabel::displayWAFMeasure(t_waf_info waf, IplImage * iplImage)
 {
 	m_waf = waf;
 	m_inputImage = iplImageToQImage(iplImage);
+#ifdef _ANDROID
+	QImage ImgRot = m_inputImage;
 
+	QTransform rot;
+	m_inputImage = ImgRot.transformed( rot.rotate( 90 ));
+#endif
 	update();
+}
+
+
+void WAFLabel::mousePressEvent(QMouseEvent *ev)
+{
+	fprintf(stderr, "WAFLabl::%s:%d : ev=%p\n",
+			__func__, __LINE__, ev);
+	emit signalMousePressEvent(ev);
 }
 
 void WAFLabel::paintEvent(QPaintEvent * e)
@@ -219,18 +232,31 @@ void WAFLabel::paintEvent(QPaintEvent * e)
 WAFMainWindow::WAFMainWindow(QWidget *parent)
 	: QMainWindow(parent), ui(new Ui::WAFMainWindow)
 {
+
 	char home[512]=".";
 	if(getenv("HOME")) {
 		strcpy(home, getenv("HOME"));
 	}
+
 	m_path = QString(home);
 	ui->setupUi(this);
 
+	m_continuous = false;
+
+#if !defined(_ANDROID) && defined(_QT5)
+	setOrientation(Qt::Vertical);
+#endif
+
+#if defined(_ANDROID)
+	ui->movieButton->hide();
+	ui->deskButton->hide();
+#endif
 	m_pWAFMeterThread = NULL;
 
 	QString filename=":/qss/WAFMeter.qss";
 	QFile file(filename);
 	file.open(QFile::ReadOnly);
+
 	QString styleSheet = QLatin1String(file.readAll());
 	//setStyleSheet(styleSheet);
 
@@ -240,7 +266,8 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 
 	// Load hue scale from ressource file (easier to deploy application)
 	QImage huescale(":huescale.png");
-	if(!huescale.isNull()) {
+	if(!huescale.isNull())
+	{
 		IplImage * header = cvCreateImageHeader(cvSize(huescale.width(), huescale.height()),
 												IPL_DEPTH_8U, huescale.depth()/8);
 		header->imageData = (char *)huescale.bits();
@@ -612,6 +639,18 @@ void WAFMainWindow::on_deskButton_clicked() {
 	QTimer::singleShot(500, this, SLOT(slot_grabTimer_timeout()));
 }
 
+void WAFMainWindow::on_imageLabel_signalMousePressEvent(QMouseEvent * ev)
+{
+	fprintf(stderr, "WAFMainWindow::%s:%d : ev=%p\n",
+			__func__, __LINE__, ev);
+	IplImage * input = m_pWAFMeterThread->getInputImage();
+	m_wafMeter.setUnscaledImage(input);
+	m_waf = m_wafMeter.getWAF();
+
+	// Display images
+	displayWAFMeasure(m_waf, input);
+}
+
 void WAFMainWindow::slot_grabTimer_timeout() {
 
 	QPixmap desktopPixmap = QPixmap::grabWindow(
@@ -773,10 +812,12 @@ void WAFMainWindow::startBackgroundThread() {
 
 void WAFMainWindow::slot_m_timer_timeout()
 {
-	if(!capture) {
+	if(!capture)
+	{
 		m_timer.stop();
 		return;
 	}
+
 	if(!m_pWAFMeterThread) {
 		m_timer.stop();
 		return;
@@ -786,8 +827,16 @@ void WAFMainWindow::slot_m_timer_timeout()
 	int cur_iteration = m_pWAFMeterThread->getIteration();
 	if(m_lastIteration != cur_iteration) {
 		m_lastIteration = cur_iteration;
+
+		if(m_continuous)
+		{
+			m_waf = m_pWAFMeterThread->getWAF();
+		} else { // just update display
+
+		}
+
 		// Display image
-		displayWAFMeasure(m_pWAFMeterThread->getWAF(), m_pWAFMeterThread->getInputImage());
+		displayWAFMeasure(m_waf, m_pWAFMeterThread->getInputImage());
 	} else {
 		//
 		fprintf(stderr, "%s:%d no fast enough\n", __func__, __LINE__);
@@ -808,6 +857,7 @@ WAFMeterThread::WAFMeterThread(WAFMeter * pWAFmeter) {
 	m_pWAFmeter = pWAFmeter;
 	m_inputImage = NULL;
 	m_iteration = 0;
+	m_continuous = false;
 	memset(&m_waf, 0, sizeof(t_waf_info));
 }
 
@@ -850,8 +900,12 @@ void WAFMeterThread::run()
 					fprintf(stderr, "%s:%d : cvRetrieveFrame(capture=%p) FAILED\n", __func__, __LINE__, capture);
 					sleep(1);
 				} else {
-					m_pWAFmeter->setUnscaledImage(frame);
-					m_waf = m_pWAFmeter->getWAF();
+
+					if(m_continuous)
+					{
+						m_pWAFmeter->setUnscaledImage(frame);
+						m_waf = m_pWAFmeter->getWAF();
+					}
 					m_iteration++;
 
 					// copy image
@@ -881,3 +935,9 @@ void WAFMeterThread::run()
 }
 
 
+
+void WAFMainWindow::on_continuousButton_toggled(bool checked)
+{
+	m_continuous = checked;
+	m_pWAFMeterThread->setContinuous(m_continuous);
+}

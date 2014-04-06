@@ -52,6 +52,12 @@ public:
 	/** @brief Set the acquisition source */
 	void setCapture(CvCapture * capture);
 
+	/** @brief Set continuous measure mode */
+	void setContinuous(bool continuous)
+	{
+		m_continuous = continuous;
+	}
+
 	/** @brief Return image associated with WAF measure */
 	t_waf_info getWAF() { return m_waf; };
 
@@ -70,6 +76,9 @@ private:
 	/// Iteration counter
 	int m_iteration;
 
+	/// Continuous processing on highgui thread
+	bool m_continuous;
+
 	/// Flag to let the thread loop run
 	bool m_run;
 
@@ -83,7 +92,10 @@ private:
 	CvCapture * m_capture;
 };
 
-/** @brief Main WAFmeter window
+
+
+
+/** @brief WAFmeter image display
   */
 class WAFLabel : public QLabel
 {
@@ -95,12 +107,16 @@ public:
 	void paintEvent(QPaintEvent *);
 	void displayWAFMeasure(t_waf_info waf, IplImage * iplImage);
 
+	void mousePressEvent(QMouseEvent *ev);
+
 private:
 	QImage m_decorImage; ///< image used for dials => foreground
 	QImage m_inputImage; ///< image used for processing=> background
 
 	QImage resultImage;
 	t_waf_info m_waf;
+signals:
+	void signalMousePressEvent(QMouseEvent * ev);
 };
 
 /** @brief Main WAFmeter window
@@ -121,6 +137,13 @@ private:
 	WAFMeterThread * m_pWAFMeterThread;
 	int m_lastIteration;
 
+	/** \brief continuous acquisition / display mode. Default = false
+	 *
+	 *	This mode is ok for PCs because the processing is fast
+	 *  but not for Android devices, too slow for Canny
+	 */
+	bool m_continuous;
+
 	WAFMeter m_wafMeter;
 	/** @brief Compute WAF and display result */
 	void computeWAF(IplImage *);
@@ -136,6 +159,7 @@ private:
 	QImage decorImage;
 	QImage resultImage;
 	t_waf_info m_waf;
+
 private slots:
 	void on_fileButton_clicked();
 	void on_snapButton_clicked();
@@ -146,6 +170,8 @@ private slots:
 	void slot_m_timer_timeout();
 	void slot_grabTimer_timeout();
 
+	void on_imageLabel_signalMousePressEvent(QMouseEvent * ev);
+	void on_continuousButton_toggled(bool checked);
 };
 
 #endif // WAFMAINWINDOW_H

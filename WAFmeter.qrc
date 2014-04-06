@@ -15,5 +15,6 @@
         <file>icons/media-playback-start.png</file>
         <file>icons/video-display.png</file>
         <file>huescale.png</file>
+        <file>icons/view-refresh.png</file>
     </qresource>
 </RCC>

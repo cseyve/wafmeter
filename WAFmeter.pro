@@ -6,8 +6,10 @@ TARGET = WAFmeter
 include(opencv.pri)
 
 # For Qt5
-greaterThan(QT_MAJOR_VERSION, 4): QT += widgets
-
+greaterThan(QT_MAJOR_VERSION, 4): {
+    QT += widgets
+    DEFINES += _QT5
+}
 
 # used for linking first with libs in /usr/local/lib before /usr/lib
 QMAKE_LIBDIR_QT -= /usr/lib

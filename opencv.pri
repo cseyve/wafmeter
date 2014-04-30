@@ -23,7 +23,7 @@ unix: {
         # reference : http://answers.opencv.org/question/25892/qt-android-opencv-is-possible/
         # we installed only OpenCV 2.4 for Android, force version of OpenCV
         DEFINES += OPENCV_22 OPENCV2
-        OPENCVPATH = /home/tof/src/OpenCV-2.4.8-android-sdk/sdk/native
+        OPENCVPATH = /home/tof/src/OpenCV-2.4.9-android-sdk/sdk/native
         CVINSTPATH = $$OPENCVPATH/jni/include
         CVINCPATH = $$OPENCVPATH/jni/include/opencv2
 
@@ -32,7 +32,7 @@ unix: {
         # try with all the .a to make a static
 
         # try with .a to make a static
-        #LIBS += /home/tof/src/OpenCV-2.4.8-android-sdk/sdk/native/libs/armeabi-v7a/*.a
+        #LIBS += /home/tof/src/OpenCV-2.4.9-android-sdk/sdk/native/libs/armeabi-v7a/*.a
         LIBS += -L$$OPENCVPATH/libs/armeabi-v7a/
         LIBS += \
             $$OPENCVPATH/libs/armeabi-v7a/libopencv_androidcamera.a \

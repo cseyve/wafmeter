@@ -36,6 +36,19 @@ QImage iplImageToQImage(IplImage * iplImage);
 
 u8 mode_file = 0;
 
+CvCapture * g_capture = 0;
+int g_index_capture = 0;
+int g_rotate = 90;
+
+int delta_ms(struct timeval tv1, struct timeval tv2)
+{
+	int dt = (tv2.tv_sec - tv1.tv_sec) * 1000
+			+ (tv2.tv_usec - tv1.tv_usec) / 1000 ;
+
+	return dt;
+}
+
+
 WAFLabel::WAFLabel(QWidget *parent)
 	: QLabel(parent)
 {
@@ -50,72 +63,154 @@ WAFLabel::WAFLabel(QWidget *parent)
 void WAFLabel::displayWAFMeasure(t_waf_info waf, IplImage * iplImage)
 {
 	m_waf = waf;
-	m_inputImage = iplImageToQImage(iplImage);
+	struct timeval tv1;
+	gettimeofday(&tv1, NULL);
+
+	if(iplImage->nChannels == 3)
+	{
+		static IplImage * rgbImage = NULL;
+		if(rgbImage &&
+				(rgbImage->width != iplImage->width
+				 || rgbImage->height != iplImage->height))
+		{
+			cvReleaseImage(&rgbImage);
+			rgbImage = NULL;
+		}
+		if(!rgbImage)
+		{
+			rgbImage = cvCloneImage(iplImage);
+		}
+		cvCvtColor(iplImage, rgbImage, CV_RGB2BGR);
+		iplImage = rgbImage;
+	}
+	struct timeval tv2;
+	gettimeofday(&tv2, NULL);
+	int dtscale=delta_ms(tv1, tv2);
+	m_procStr = tr(" CvtCol=") + QString::number(dtscale);
+
+	// Then scale
+	QRect cr = rect();
+	static IplImage * scaledImage = NULL;
+	if(scaledImage &&
+			(scaledImage->width != cr.height() // Switch height and width
+			 || scaledImage->height != cr.width()))
+	{
+		cvReleaseImage(&scaledImage);
+		scaledImage = NULL;
+	}
+	if(!scaledImage)
+	{
+		scaledImage = cvCreateImage(cvSize(cr.height(), cr.width()), IPL_DEPTH_8U, iplImage->nChannels);
+	}
+	cvResize(iplImage, scaledImage);
+	m_inputImage = iplImageToQImage(scaledImage);
+
+	struct timeval tv3;
+	gettimeofday(&tv3, NULL);
+	dtscale=delta_ms(tv2, tv3);
+	m_procStr += tr(" Resize=") + QString::number(dtscale);
+
 #ifdef _ANDROID
 	QImage ImgRot = m_inputImage;
-
 	QTransform rot;
-	m_inputImage = ImgRot.transformed( rot.rotate( 90 ));
+	m_inputImage = ImgRot.transformed( rot.rotate( g_rotate ));
 #endif
+	struct timeval tv4;
+	gettimeofday(&tv4, NULL);
+	dtscale=delta_ms(tv3, tv4);
+	m_procStr += tr(" Rotate=") + QString::number(dtscale);
+
 	update();
 }
 
 
+
 void WAFLabel::mousePressEvent(QMouseEvent *ev)
 {
-	fprintf(stderr, "WAFLabl::%s:%d : ev=%p\n",
+	fprintf(stderr, "WAFLabel::%s:%d : ev=%p\n",
 			__func__, __LINE__, ev);
 	emit signalMousePressEvent(ev);
 }
+
+
 
 void WAFLabel::paintEvent(QPaintEvent * e)
 {
 	QRect cr = rect();
 
+	struct timeval tv1;
+	gettimeofday(&tv1, NULL);
+
 	// load image to display
-	QImage scaledImg = m_inputImage.scaled(
+	QImage scaledImg;
+	if(m_inputImage.width() != cr.width()
+			|| m_inputImage.height() != cr.height())
+	{
+		scaledImg = m_inputImage.scaled(
 				cr.width(),
 				cr.height(),
 				Qt::KeepAspectRatio
 				);
+	}
+	else
+	{
+		scaledImg = m_inputImage;
+	}
+	struct timeval tv2;
+	gettimeofday(&tv2, NULL);
+	int dtscale=delta_ms(tv1, tv2);
+	m_procStr += tr(" Scale=") + QString::number(dtscale);
+
 	/*
+	QPainter::CompositionMode mode = currentMode();
 
-  QPainter::CompositionMode mode = currentMode();
+	QPainter painter(&resultImage);
+	painter.setCompositionMode(QPainter::CompositionMode_Source);
+	painter.fillRect(resultImage.rect(), Qt::transparent);
+	painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
+	painter.drawImage(0, 0, destinationImage);
+	painter.setCompositionMode(mode);
+	painter.drawImage(0, 0, sourceImage);
+	painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
+	painter.fillRect(resultImage.rect(), Qt::white);
+	painter.end();
 
-  QPainter painter(&resultImage);
-  painter.setCompositionMode(QPainter::CompositionMode_Source);
-  painter.fillRect(resultImage.rect(), Qt::transparent);
-  painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
-  painter.drawImage(0, 0, destinationImage);
-  painter.setCompositionMode(mode);
-  painter.drawImage(0, 0, sourceImage);
-  painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
-  painter.fillRect(resultImage.rect(), Qt::white);
-  painter.end();
+	resultLabel->setPixmap(QPixmap::fromImage(resultImage));
+	*/
 
-  resultLabel->setPixmap(QPixmap::fromImage(resultImage));
- */
 	if(m_inputImage.isNull())
 	{
 		m_inputImage = QImage( cr.size(), QImage::Format_ARGB32 );
 		m_inputImage.fill(255);
 	}
 
-	//	QImage resultImage(ui->imageLabel->width(),
-	//					   ui->imageLabel->height(),
-	//                                           QImage::Format_ARGB32_Premultiplied);
-	resultImage = m_inputImage.scaled(
-				cr.width(),
-				cr.height(),
-				Qt::IgnoreAspectRatio );
+	QImage resultImage(cr.width(),
+					   cr.height(),
+					   QImage::Format_ARGB32_Premultiplied);
+//	resultImage = m_inputImage.scaled(
+//				cr.width(),
+//				cr.height(),
+//				Qt::IgnoreAspectRatio );
+	struct timeval tv3;
+	gettimeofday(&tv3, NULL);
+
+	dtscale=delta_ms(tv2, tv3);
+	m_procStr += tr(" resultScale=") + QString::number(dtscale);
 
 	QPainter painter(&resultImage);
 
-	QImage destinationImage = m_decorImage.scaled(cr.width(),
+	if(m_destinationImage.width() != cr.width()) {
+		m_destinationImage = m_decorImage.scaled(cr.width(),
 												cr.width(), // twice width to force to be dow
 												Qt::KeepAspectRatio);
+	}
 	QImage sourceImage = scaledImg;
 	sourceImage.convertToFormat(QImage::Format_ARGB32_Premultiplied);
+
+	struct timeval tv4;
+	gettimeofday(&tv4, NULL);
+	dtscale=delta_ms(tv3, tv4);
+	m_procStr += tr("sourceImage=") + QString::number(dtscale);
 
 	//QImage alphaMask = decorImage.createMaskFromColor(qRgb(0,0,0));
 	//decorImage.setAlphaChannel(alphaMask);
@@ -127,11 +222,15 @@ void WAFLabel::paintEvent(QPaintEvent * e)
 	// Draw input image on top, centered
 	painter.drawImage((resultImage.width() - sourceImage.width())/2,
 					  0, sourceImage);
+	struct timeval tv5;
+	gettimeofday(&tv5, NULL);
+	dtscale=delta_ms(tv4, tv5);
+	m_procStr += tr(" draw sourceImage=") + QString::number(dtscale);
 
 	painter.setCompositionMode(QPainter::CompositionMode_SourceOver);
 	// Draw dials on bottom
-	painter.drawImage(0, cr.height()-destinationImage.height(),
-					  destinationImage);
+	painter.drawImage(0, cr.height()-m_destinationImage.height(),
+					  m_destinationImage);
 	painter.setCompositionMode(QPainter::CompositionMode_DestinationOver);
 	//        painter.fillRect(resultImage.rect(), Qt::white);
 
@@ -209,8 +308,8 @@ void WAFLabel::paintEvent(QPaintEvent * e)
 	painter.end();
 
 
-//	QPixmap localPixmap = QPixmap::fromImage(resultImage);
-//	ui->imageLabel->setPixmap(localPixmap);
+	//	QPixmap localPixmap = QPixmap::fromImage(resultImage);
+	//	ui->imageLabel->setPixmap(localPixmap);
 
 	/*
 	 QString dialname=":/icons/Dialer.png";
@@ -240,14 +339,17 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 
 	m_path = QString(home);
 	ui->setupUi(this);
-
+#ifdef HAS_DEBUGLABEL
+	ui->debugLabel->hide();
+#endif
 	m_continuous = false;
 
 #if !defined(_ANDROID) && defined(_QT5)
-	setOrientation(Qt::Vertical);
+	//setOrientation(Qt::Vertical);
 #endif
 
 #if defined(_ANDROID)
+	ui->widget_grid_bottom->setMinimumHeight(128);
 	ui->movieButton->hide();
 	ui->deskButton->hide();
 #endif
@@ -325,8 +427,23 @@ static void init_grayToBGR32()
 }
 
 QImage iplImageToQImage(IplImage * iplImage) {
-	if(!iplImage)
+	if(!iplImage) {
 		return QImage();
+	}
+
+	QImage outImage( (uchar*)iplImage->imageData,
+				   iplImage->width, iplImage->height,
+				   iplImage->widthStep,
+				   ( iplImage->nChannels == 4 ? QImage::Format_ARGB32 :
+												(iplImage->nChannels == 3 ?
+													 QImage::Format_RGB888 //Set to RGB888 instead of ARGB32 for ignore Alpha Chan
+												   : QImage::Format_Indexed8)
+												)
+				   );
+	return outImage;
+
+
+
 
 
 	int depth = iplImage->nChannels;
@@ -353,6 +470,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 	//		orig_width--;
 
 
+
 	QImage qImage(orig_width, iplImage->height, depth == 1 ? QImage::Format_Mono : QImage::Format_ARGB32);
 	memset(qImage.bits(), 255, orig_width*iplImage->height*depth); // to fill the alpha channel
 
@@ -364,7 +482,9 @@ QImage iplImageToQImage(IplImage * iplImage) {
 
 	case IPL_DEPTH_8U: {
 		if(!rgb24_to_bgr32 && !gray_to_bgr32) {
+
 			if(iplImage->nChannels != 4) {
+				qDebug("iplImage->nChannels != 4");
 				for(int r=0; r<iplImage->height; r++) {
 					// NO need to swap R<->B
 					memcpy(qImage.bits() + r*orig_width*depth,
@@ -372,6 +492,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 						   orig_width*depth);
 				}
 			} else {
+				qDebug("need to swap R<->B");
 				for(int r=0; r<iplImage->height; r++) {
 					// need to swap R<->B
 					u8 * buf_out = (u8 *)(qImage.bits()) + r*orig_width*depth;
@@ -389,7 +510,21 @@ QImage iplImageToQImage(IplImage * iplImage) {
 */				}
 			}
 		}
-		else if(rgb24_to_bgr32) {
+		else if(rgb24_to_bgr32)
+		{
+			struct timeval tv1, tv2;
+			gettimeofday(&tv1, NULL);
+			IplImage * bgr4_header = cvCreateImageHeader(cvGetSize(iplImage), IPL_DEPTH_8U, 4);
+			bgr4_header->imageData = (char *)qImage.bits();
+			cvCvtColor(iplImage, bgr4_header, CV_RGB2BGRA);
+			cvReleaseImageHeader(&bgr4_header);
+			gettimeofday(&tv2, NULL);
+			int dt = 1000 * (tv2.tv_sec - tv1.tv_sec)
+					+ (tv2.tv_usec - tv1.tv_usec)/1000;
+			printf("Dt RGB2BGR=%d ms\n", dt);
+
+
+			/* TOO SLOW !
 			// RGB24 to BGR32
 			u8 * buffer3 = (u8 *)iplImage->imageData;
 			u8 * buffer4 = (u8 *)qImage.bits();
@@ -408,13 +543,16 @@ QImage iplImageToQImage(IplImage * iplImage) {
 					buffer4[pos4 + 1] = buffer3[pos3+1];
 					buffer4[pos4 + 2] = buffer3[pos3+2];
 				}
-			}
-		} else if(gray_to_bgr32) {
+			}*/
+		}
+		else if(gray_to_bgr32)
+		{
 			for(int r=0; r<iplImage->height; r++)
 			{
 				u32 * buffer4 = (u32 *)qImage.bits() + r*qImage.width();
 				u8 * bufferY = (u8 *)(iplImage->imageData + r*iplImage->widthStep);
-				for(int c=0; c<orig_width; c++) {
+				for(int c=0; c<orig_width; c++)
+				{
 					buffer4[c] = grayToBGR32palette[ (int)bufferY[c] ];
 				}
 			}
@@ -582,7 +720,7 @@ QImage iplImageToQImage(IplImage * iplImage) {
 
 	if(qImage.depth() == 8)
 	{
-#ifndef ANDROID
+#if !defined(_ANDROID) && !defined(_QT5)
 		qImage.setNumColors(256);
 
 		for(int c=0; c<256; c++) {
@@ -616,13 +754,26 @@ void WAFMainWindow::computeWAF(IplImage * iplImage) {
 
 	// Display images
 	displayWAFMeasure(waf, iplImage);
+
+#ifdef HAS_DEBUGLABEL
+	QString debugStr;
+	debugStr.sprintf("%dx%dx%d",
+					 iplImage->width,
+					 iplImage->height,
+					 iplImage->nChannels);
+
+	debugStr += ui->imageLabel->getProcStr();
+	ui->debugLabel->setText(debugStr);
+#endif
 }
 
-void WAFMainWindow::on_deskButton_clicked() {
+void WAFMainWindow::on_deskButton_clicked()
+{
 	QPoint curpos = QApplication::activeWindow()->pos();
 	QRect currect = QApplication::activeWindow()->rect();
 	QPoint imgPos = QApplication::activeWindow()->geometry().topLeft();
 	QRect imgRect = ui->imageLabel->rect();
+
 	/*
 	fprintf(stderr, "%s:%d: curpos=%dx%d +%dx%d imageLabel=%d,%d rect=%d,%d+%dx%d\n",
 			__func__, __LINE__,
@@ -723,35 +874,18 @@ void WAFMainWindow::displayWAFMeasure(t_waf_info waf, IplImage * iplImage)
 	ui->imageLabel->displayWAFMeasure(waf, iplImage);
 }
 
-CvCapture* capture = 0;
 
 void WAFMainWindow::on_camButton_toggled(bool checked)
 {
-	if(!checked) {
-		if(m_timer.isActive())
-			m_timer.stop();
-		// Stop thread
-		if(m_pWAFMeterThread) {
-			m_pWAFMeterThread->stop();
-			m_pWAFMeterThread->setCapture(NULL);
-		}
-		cvReleaseCapture(&capture);
-		capture = NULL;
-
-		return;
+	if(checked)
+	{
+		startCamera();
+	}
+	else
+	{
+		stopCamera();
 	}
 
-	if(!capture) {
-		int retry = 0;
-		do {
-			capture = cvCreateCameraCapture (retry);
-			retry++;
-		} while(!capture && retry < 4);
-		fprintf(stderr, "%s:%d : capture=%p\n", __func__, __LINE__, capture);
-	}
-	if(!capture) { return ; }
-
-	startBackgroundThread();
 }
 
 void WAFMainWindow::on_movieButton_toggled(bool checked)
@@ -768,13 +902,13 @@ void WAFMainWindow::on_movieButton_toggled(bool checked)
 			m_pWAFMeterThread->stop();
 			m_pWAFMeterThread->setCapture(NULL);
 		}
-		cvReleaseCapture(&capture);
-		capture = NULL;
+		cvReleaseCapture(&g_capture);
+		g_capture = NULL;
 
 		return;
 	}
 
-	if(!capture) {
+	if(!g_capture) {
 		QString fileName = QFileDialog::getOpenFileName(this, tr("Open File"),
 														m_path,
 														tr("Movies (*.avi *.mp* *.mov)"));
@@ -785,34 +919,39 @@ void WAFMainWindow::on_movieButton_toggled(bool checked)
 
 		m_path = fi.absolutePath();
 
-		capture = cvCaptureFromFile( fi.absoluteFilePath().toUtf8().data() );
+		g_capture = cvCaptureFromFile( fi.absoluteFilePath().toUtf8().data() );
 
-		fprintf(stderr, "%s:%d : capture=%p\n", __func__, __LINE__, capture);
+		fprintf(stderr, "%s:%d : capture=%p\n", __func__, __LINE__, g_capture);
 		startBackgroundThread();
 	}
 }
 
 void WAFMainWindow::startBackgroundThread() {
 
-	if(!capture) { return ; }
+	if(!g_capture) {
+		fprintf(stderr, "%s:%d : CANNOT start: capture=%p\n", __func__, __LINE__, g_capture);
+
+		return ; }
 
 	if(!m_pWAFMeterThread) {
+		fprintf(stderr, "%s:%d : starting new thread...\n", __func__, __LINE__);
 		m_pWAFMeterThread = new WAFMeterThread(&m_wafMeter);
 	}
 
-	m_pWAFMeterThread->setCapture(capture);
+	m_pWAFMeterThread->setCapture(g_capture);
+
 	m_pWAFMeterThread->start();
 
 	if(!m_timer.isActive()) {
 		//  m_timer.start(40); // 25 fps
-		m_timer.start(100); // 10 fps
+		m_timer.start(250); // 4 fps
 	}
 
 }
 
 void WAFMainWindow::slot_m_timer_timeout()
 {
-	if(!capture)
+	if(!g_capture)
 	{
 		m_timer.stop();
 		return;
@@ -835,8 +974,23 @@ void WAFMainWindow::slot_m_timer_timeout()
 
 		}
 
+		fprintf(stderr, "%s:%d: iter %4d\n", __func__, __LINE__, cur_iteration);
+
 		// Display image
 		displayWAFMeasure(m_waf, m_pWAFMeterThread->getInputImage());
+#ifdef HAS_DEBUGLABEL
+		QString debugStr;
+		if(m_pWAFMeterThread->getInputImage())
+		{
+			debugStr.sprintf("%dx%dx%d # %4d",
+							 m_pWAFMeterThread->getInputImage()->width,
+							 m_pWAFMeterThread->getInputImage()->height,
+							 m_pWAFMeterThread->getInputImage()->nChannels,
+							 cur_iteration);
+		}
+		debugStr += ui->imageLabel->getProcStr();
+		ui->debugLabel->setText(debugStr);
+#endif
 	} else {
 		//
 		fprintf(stderr, "%s:%d no fast enough\n", __func__, __LINE__);
@@ -888,16 +1042,16 @@ void WAFMeterThread::run()
 			IplImage * frame = cvQueryFrame( m_capture );
 
 			if( !frame) { //!cvGrabFrame( m_capture ) ) {
-				fprintf(stderr, "%s:%d : capture=%p FAILED\n", __func__, __LINE__, capture);
+				fprintf(stderr, "%s:%d : capture=%p FAILED\n", __func__, __LINE__, g_capture);
 				sleep(1);
 				sleep(2);
 
 			} else {
-				// fprintf(stderr, "%s:%d : capture=%p ok, iteration=%d\n",
-				//		__func__, __LINE__, m_capture, m_iteration);
+				 fprintf(stderr, "%s:%d : capture=%p ok, iteration=%d\n",
+						__func__, __LINE__, m_capture, m_iteration);
 				//IplImage * frame = cvRetrieveFrame( m_capture );
 				if(!frame) {
-					fprintf(stderr, "%s:%d : cvRetrieveFrame(capture=%p) FAILED\n", __func__, __LINE__, capture);
+					fprintf(stderr, "%s:%d : cvRetrieveFrame(capture=%p) FAILED\n", __func__, __LINE__, g_capture);
 					sleep(1);
 				} else {
 
@@ -920,14 +1074,17 @@ void WAFMeterThread::run()
 						m_inputImage = tmCreateImage(cvGetSize(frame), IPL_DEPTH_8U, frame->nChannels);
 						fprintf(stderr, "%s:%d : capture=%p "
 								"=> realloc img %dx%dx%d\n", __func__, __LINE__,
-								capture,
+								g_capture,
 								frame->width, frame->height, frame->nChannels);
 					}
 					cvCopy(frame, m_inputImage);
 				}
 			}
 		} else {
-			sleep(1);
+			fprintf(stderr, "%s:%d: have to wait a little (m_capture=%p / m_pWAFmeter=%p)\n",
+					__func__, __LINE__,
+					m_capture, m_pWAFmeter);
+			sleep(1); // Maybe not set yet, wait a little
 		}
 	}
 
@@ -940,4 +1097,57 @@ void WAFMainWindow::on_continuousButton_toggled(bool checked)
 {
 	m_continuous = checked;
 	m_pWAFMeterThread->setContinuous(m_continuous);
+}
+
+
+void WAFMainWindow::startCamera()
+{
+	if(g_capture) {
+		// Already running, so stop first
+		stopCamera();
+	}
+
+	// on android cameras, back camera is 0 and front is 1
+	g_index_capture = (ui->frontCamButton->isChecked() ? 1 : 0);
+	// On Google/Samsung Nexus S, we have to rotate +90 deg for back camera
+	// and -90 for front
+	g_rotate = (ui->frontCamButton->isChecked() ? -90 : 90);
+	g_capture = cvCreateCameraCapture( g_index_capture );
+
+	startBackgroundThread();
+
+	if(g_capture && m_pWAFMeterThread)
+	{
+		m_pWAFMeterThread->setCapture( g_capture );
+	}
+}
+
+void WAFMainWindow::stopCamera()
+{
+	if( g_capture )
+	{
+		// Stop thread
+		if(m_pWAFMeterThread) {
+			m_pWAFMeterThread->stop();
+			m_pWAFMeterThread->setCapture(NULL);
+		}
+
+		cvReleaseCapture(&g_capture);
+		g_capture = NULL;
+	}
+	if(m_timer.isActive())
+	{
+		m_timer.stop();
+	}
+}
+
+void WAFMainWindow::on_frontCamButton_toggled(bool checked)
+{
+	if(g_capture)
+	{
+		stopCamera();
+
+		// start camera
+		startCamera();
+	}
 }

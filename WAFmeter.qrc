@@ -16,5 +16,9 @@
         <file>icons/video-display.png</file>
         <file>huescale.png</file>
         <file>icons/view-refresh.png</file>
+        <file>icons/WAFMeter64.png</file>
+        <file>icons/camera-square64.png</file>
+        <file>icons/camera-square128.png</file>
+        <file>icons/switch-cameras64.png</file>
     </qresource>
 </RCC>

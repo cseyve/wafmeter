@@ -8,6 +8,7 @@ include(opencv.pri)
 # For Qt5
 greaterThan(QT_MAJOR_VERSION, 4): {
     QT += widgets
+    QT -= network
     DEFINES += _QT5
 }
 
@@ -114,5 +115,7 @@ include(deployment.pri)
 qtcAddDeployment()
 
 ANDROID_PACKAGE_SOURCE_DIR = $$PWD/android
+
+ANDROID_EXTRA_LIBS = ../../../src/OpenCV-2.4.9-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_java.so ../../../src/OpenCV-2.4.9-android-sdk/sdk/native/libs/armeabi-v7a/libopencv_info.so ../../../src/OpenCV-2.4.9-android-sdk/sdk/native/libs/armeabi-v7a/libnative_camera_r4.4.0.so
 
 

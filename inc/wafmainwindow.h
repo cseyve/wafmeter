@@ -32,7 +32,8 @@
 
 #include "wafmeter.h"
 
-
+// For gettimeofday
+#include <sys/time.h>
 
 namespace Ui
 {
@@ -104,17 +105,26 @@ class WAFLabel : public QLabel
 public:
 	WAFLabel(QWidget *parent = 0);
 
+	QRect getRect() { return rect(); }
+
 	void paintEvent(QPaintEvent *);
 	void displayWAFMeasure(t_waf_info waf, IplImage * iplImage);
 
 	void mousePressEvent(QMouseEvent *ev);
 
+	/// \brief Return processing time string
+	QString getProcStr() { return m_procStr; }
+
+
 private:
-	QImage m_decorImage; ///< image used for dials => foreground
-	QImage m_inputImage; ///< image used for processing=> background
+	QString m_procStr;		///< processing time string
+	QImage m_decorImage;	///< image used for dials => foreground
+	QImage m_inputImage;	///< image used for processing=> background
 
 	QImage resultImage;
+	QImage m_destinationImage; ///< image of decor scaled to display size
 	t_waf_info m_waf;
+
 signals:
 	void signalMousePressEvent(QMouseEvent * ev);
 };
@@ -154,6 +164,11 @@ private:
 	/** @brief Start background thread for capture source */
 	void startBackgroundThread();
 
+	/** @brief Start camera grabbing */
+	void startCamera();
+	/** @brief Stop camera grabbing */
+	void stopCamera();
+
 	QRect m_grabRect;
 
 	QImage decorImage;
@@ -172,6 +187,7 @@ private slots:
 
 	void on_imageLabel_signalMousePressEvent(QMouseEvent * ev);
 	void on_continuousButton_toggled(bool checked);
+	void on_frontCamButton_toggled(bool checked);
 };
 
 #endif // WAFMAINWINDOW_H

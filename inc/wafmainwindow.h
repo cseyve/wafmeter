@@ -216,6 +216,7 @@ private slots:
 	void on_imageLabel_signalMousePressEvent(QMouseEvent * ev);
 	void on_continuousButton_toggled(bool checked);
 	void on_frontCamButton_toggled(bool checked);
+	void on_dirButton_clicked();
 };
 
 #endif // WAFMAINWINDOW_H

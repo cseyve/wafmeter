@@ -37,6 +37,9 @@
 #include <QMutex>
 
 #include <QMessageBox>
+#include <QDebug>
+#include <QDesktopServices>
+#include <QUrl>
 
 #ifdef _QT5
 #include <QStandardPaths>
@@ -191,7 +194,7 @@ void WAFLabel::mousePressEvent(QMouseEvent *ev)
 
 
 
-void WAFLabel::paintEvent(QPaintEvent * e)
+void WAFLabel::paintEvent(QPaintEvent * )
 {
 	QRect cr = rect();
 
@@ -421,11 +424,14 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 	ui->deskButton->hide();
 	ui->fileButton->hide();
 
+	ui->dirButton->hide();
+
 	QSize iconSize = QSize(64,64);
 	ui->camButton->setIconSize(iconSize);
 	ui->continuousButton->setIconSize(iconSize);
 	ui->frontCamButton->setIconSize(iconSize);
 	ui->snapButton->setIconSize(iconSize);
+	ui->dirButton->setIconSize(iconSize);
 #endif
 
 	m_pWAFMeterThread = NULL;
@@ -703,6 +709,49 @@ void WAFMainWindow::on_frontCamButton_toggled(bool )
 		startCamera();
 	}
 }
+void WAFMainWindow::on_dirButton_clicked()
+{
+	QDir snapDir(QDir::homePath());
+#ifndef _QT5
+	QString writePath = tr("Desktop");
+	// Before Qt5, no standard path have been described
+	snapDir.cd(writePath);
+#else
+
+#ifdef _ANDROID
+	QString writePath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+	if(snapDir.cd("/sdcard/WAFmeter"))
+	{
+		writePath = snapDir.currentPath();
+	}
+#else
+	// Ref: http://qt-project.org/doc/qt-5/qstandardpaths.html
+	QStringList stdLocations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
+	msg = "pictures={";
+	for(int idx=0; idx<stdLocations.count(); ++idx)
+	{
+		msg += QString::number(idx) + "=" + stdLocations.at(idx) + ";";
+	}
+	msg += "}\n";
+
+	QString readPath = QStandardPaths::displayName(QStandardPaths::PicturesLocation);
+	msg += tr(" displayName(picturesLocation)=")+readPath;
+	QString writePath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+	if(writePath.isEmpty())
+	{
+		msg += tr(" Could not read writable path for Pictures");
+		writePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
+		qDebug() <<  tr("No writable locations for saving images, save them in app directory ")
+							  << writePath;
+		msg += tr("=> use app path ") + writePath;
+	}
+	snapDir.cd(writePath);
+#endif // ANDROID
+#endif // QT5
+	qDebug() << "Open directory:" << writePath;
+	QDesktopServices::openUrl(QUrl::fromLocalFile(writePath));
+}
+
 void WAFMainWindow::on_snapButton_clicked() {
 
 	if(m_resultImage.isNull()) {
@@ -718,19 +767,48 @@ void WAFMainWindow::on_snapButton_clicked() {
 	// Before Qt5, no standard path have been described
 	snapDir.cd(tr("Desktop"));
 #else
+
+#ifdef _ANDROID
+	QString writePath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
+	if(snapDir.cd("/sdcard/")) {
+		if(!snapDir.exists("WAFmeter"))
+		{
+			snapDir.mkdir("WAFmeter");
+		}
+		if(snapDir.cd("WAFmeter"))
+		{
+			writePath = snapDir.currentPath();
+		}
+	}
+#else
 	// Ref: http://qt-project.org/doc/qt-5/qstandardpaths.html
+	QStringList stdLocations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
+	msg = "pictures={";
+	for(int idx=0; idx<stdLocations.count(); ++idx)
+	{
+		msg += QString::number(idx) + "=" + stdLocations.at(idx) + ";";
+	}
+	msg += "}\n";
+
+	QString readPath = QStandardPaths::displayName(QStandardPaths::PicturesLocation);
+	msg += tr(" displayName(picturesLocation)=")+readPath;
 	QString writePath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
 	if(writePath.isEmpty())
 	{
-		msg = tr("Could not read writable path for Pictures");
+		msg += tr(" Could not read writable path for Pictures");
 		writePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
 		QMessageBox::critical(this, tr("No writable for images"),
 							  tr("No writable locations for saving images, save them in app directory ")
 							  + writePath);
 		msg += tr("=> use app path ") + writePath;
 	}
-
 	snapDir.cd(writePath);
+#endif
+
+	qDebug() << "writepath=" << writePath << "\n";
+	qDebug() << msg;
+
+
 #endif
 
 	QString wafStr;
@@ -1068,6 +1146,7 @@ void WAFMeterThread::run()
 
 	m_isRunning = false;
 }
+
 
 
 

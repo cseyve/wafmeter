@@ -23,5 +23,6 @@
         <file>icons/tap-refresh.png</file>
         <file>icons/continuous-refresh.png</file>
         <file>icons/camera-square128-off.png</file>
+        <file>icons/folder-image.png</file>
     </qresource>
 </RCC>

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>284</width>
-    <height>327</height>
+    <width>327</width>
+    <height>519</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -29,7 +29,7 @@
    </property>
    <layout class="QVBoxLayout" name="verticalLayout">
     <property name="spacing">
-     <number>2</number>
+     <number>0</number>
     </property>
     <property name="leftMargin">
      <number>0</number>
@@ -52,7 +52,23 @@
        </sizepolicy>
       </property>
       <property name="styleSheet">
-       <string notr="true">background-color: rgba(255,255,255,255);</string>
+       <string notr="true"/>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="scaledContents">
+       <bool>true</bool>
+      </property>
+      <property name="alignment">
+       <set>Qt::AlignCenter</set>
+      </property>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="tapLabel">
+      <property name="text">
+       <string>Tap on image to get the WAF</string>
       </property>
       <property name="scaledContents">
        <bool>true</bool>
@@ -64,6 +80,12 @@
     </item>
     <item>
      <widget class="QWidget" name="widget_grid_bottom" native="true">
+      <property name="sizePolicy">
+       <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+        <horstretch>0</horstretch>
+        <verstretch>0</verstretch>
+       </sizepolicy>
+      </property>
       <property name="minimumSize">
        <size>
         <width>0</width>
@@ -73,8 +95,11 @@
       <property name="maximumSize">
        <size>
         <width>16777215</width>
-        <height>70</height>
+        <height>66</height>
        </size>
+      </property>
+      <property name="styleSheet">
+       <string notr="true">background-color: rgba(255, 255, 255, 0);</string>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
        <property name="leftMargin">
@@ -111,10 +136,27 @@
          </property>
          <property name="icon">
           <iconset resource="../WAFmeter.qrc">
-           <normaloff>:/icons/camera-square128.png</normaloff>:/icons/camera-square128.png</iconset>
+           <normaloff>:/icons/camera-square128-off.png</normaloff>
+           <normalon>:/icons/camera-square128.png</normalon>:/icons/camera-square128-off.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
          </property>
          <property name="checkable">
           <bool>true</bool>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
+         </property>
+        </widget>
+       </item>
+       <item row="1" column="6">
+        <widget class="Line" name="line">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
          </property>
         </widget>
        </item>
@@ -139,8 +181,17 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/image-jpeg.png</normaloff>:/icons/image-jpeg.png</iconset>
          </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
          <property name="shortcut">
           <string>Ctrl+O</string>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
          </property>
         </widget>
        </item>
@@ -165,7 +216,16 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/media-playback-start.png</normaloff>:/icons/media-playback-start.png</iconset>
          </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
          <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="flat">
           <bool>true</bool>
          </property>
         </widget>
@@ -188,6 +248,15 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/camera-photo.png</normaloff>:/icons/camera-photo.png</iconset>
          </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
        <item row="1" column="1">
@@ -208,7 +277,16 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/switch-cameras64.png</normaloff>:/icons/switch-cameras64.png</iconset>
          </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
          <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="flat">
           <bool>true</bool>
          </property>
         </widget>
@@ -229,9 +307,19 @@
          </property>
          <property name="icon">
           <iconset resource="../WAFmeter.qrc">
-           <normaloff>:/icons/view-refresh.png</normaloff>:/icons/view-refresh.png</iconset>
+           <normaloff>:/icons/tap-refresh.png</normaloff>
+           <normalon>:/icons/continuous-refresh.png</normalon>:/icons/tap-refresh.png</iconset>
+         </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
          </property>
          <property name="checkable">
+          <bool>true</bool>
+         </property>
+         <property name="flat">
           <bool>true</bool>
          </property>
         </widget>
@@ -254,9 +342,33 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/video-display.png</normaloff>:/icons/video-display.png</iconset>
          </property>
+         <property name="iconSize">
+          <size>
+           <width>32</width>
+           <height>32</height>
+          </size>
+         </property>
+         <property name="flat">
+          <bool>true</bool>
+         </property>
         </widget>
        </item>
       </layout>
+     </widget>
+    </item>
+    <item>
+     <widget class="QLabel" name="debugLabel">
+      <property name="font">
+       <font>
+        <pointsize>8</pointsize>
+       </font>
+      </property>
+      <property name="text">
+       <string/>
+      </property>
+      <property name="wordWrap">
+       <bool>true</bool>
+      </property>
      </widget>
     </item>
    </layout>

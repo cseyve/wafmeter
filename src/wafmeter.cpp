@@ -84,9 +84,13 @@ void WAFMeter::purgeScaled() {
 
 	memset(&m_details, 0, sizeof(t_waf_info_details));
 
-        tmReleaseImage(&m_grayImage);
-        tmReleaseImage(&m_cannyImage);
-        tmReleaseImage(&m_scaledImage);
+	tmReleaseImage(&m_grayImage);
+	tmReleaseImage(&m_cannyImage);
+	if(m_scaledImage_allocated)
+	{
+		tmReleaseImage(&m_scaledImage);
+	}
+	else { m_scaledImage = NULL; }
 	tmReleaseImage(&m_HSHistoImage);
 	tmReleaseImage(&m_HistoImage);
 	tmReleaseImage(&hsvImage);
@@ -163,7 +167,7 @@ int WAFMeter::setUnscaledImage(IplImage * img) {
 	if(!m_scaledImage) {
 		m_scaledImage_allocated = true;
 		m_scaledImage = tmCreateImage(cvSize(sc_w, sc_h),
-                                              IPL_DEPTH_8U, m_originalImage->nChannels);
+									  IPL_DEPTH_8U, m_originalImage->nChannels);
 	}
 
 	// Resize to processing scale
@@ -184,8 +188,7 @@ int WAFMeter::setUnscaledImage(IplImage * img) {
 int WAFMeter::processImage(IplImage * scaledImage) {
 	if(!scaledImage) { return -1; }
 
-	if((m_scaledImage_allocated
-			&& m_scaledImage != scaledImage)
+	if((m_scaledImage_allocated && m_scaledImage != scaledImage) // input image changed
 		|| !m_scaledImage ) {
 		purgeScaled();
 

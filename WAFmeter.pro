@@ -9,11 +9,15 @@ include(opencv.pri)
 greaterThan(QT_MAJOR_VERSION, 4): {
     QT += widgets
     QT -= network
+    # for use in the code to make the difference
     DEFINES += _QT5
 }
 
 # used for linking first with libs in /usr/local/lib before /usr/lib
 QMAKE_LIBDIR_QT -= /usr/lib
+
+
+TRANSLATIONS += WAFmeter_French.ts
 
 TEMPLATE = app
 #DEFINES += QT3_SUPPORT

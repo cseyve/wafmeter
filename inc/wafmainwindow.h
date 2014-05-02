@@ -68,12 +68,19 @@ public:
 	/** @brief Tell the thread to stop */
 	void stop();
 
+	/** @brief Get slow update period */
+	float getPeriodMS() { return m_period_ms; }
+
 	/** @brief Return iteration count */
 	int getIteration() { return m_iteration; };
 
 	/** @brief Thread loop */
 	virtual void run();
 private:
+
+	/// Slow update period
+	float m_period_ms;
+
 	/// Iteration counter
 	int m_iteration;
 
@@ -97,6 +104,8 @@ private:
 
 
 /** @brief WAFmeter image display
+ *
+ * This display draws the image, the dial and the needles
   */
 class WAFLabel : public QLabel
 {
@@ -105,23 +114,38 @@ class WAFLabel : public QLabel
 public:
 	WAFLabel(QWidget *parent = 0);
 
+	/** @brief Get the size of object to resize the image with OpenCV,
+	 *
+	 *  The OpenCV call to cvResize if faster than QImage::scale */
 	QRect getRect() { return rect(); }
 
+	/** @brief Paint event= draw the image, the dial background and the needles */
 	void paintEvent(QPaintEvent *);
+
+	/** @brief Set the current WAF measure, the image */
 	void displayWAFMeasure(t_waf_info waf, IplImage * iplImage);
 
+	/** @brief Capture mouse event to emit signal for processing the WAF */
 	void mousePressEvent(QMouseEvent *ev);
 
-	/// \brief Return processing time string
+	/** @brief Performance measurement: return processing time string
+	 *
+	 * It returns a description of all the ms spent in the different steps
+	 */
 	QString getProcStr() { return m_procStr; }
 
+
+	/** @brief Performance measurement: return processing time string
+	 */
+	QImage getResultImage() { return m_resultImage; }
 
 private:
 	QString m_procStr;		///< processing time string
 	QImage m_decorImage;	///< image used for dials => foreground
-	QImage m_inputImage;	///< image used for processing=> background
+	QImage m_inputQImage;	///< image used for processing=> background
 
-	QImage resultImage;
+	/** @brief Result image, eg the image with the original image, the dial and the needles */
+	QImage m_resultImage;
 	QImage m_destinationImage; ///< image of decor scaled to display size
 	t_waf_info m_waf;
 
@@ -144,8 +168,12 @@ private:
 	QString m_path;
 
 	QTimer m_timer;
+	int m_timer_delay_ms;	///< delay before next update
+
+	bool m_pause_display; ///< after a click, lock display until the user tap on screen
 	WAFMeterThread * m_pWAFMeterThread;
-	int m_lastIteration;
+
+	int m_lastIteration; ///< index of last iteration displayed
 
 	/** \brief continuous acquisition / display mode. Default = false
 	 *
@@ -172,7 +200,7 @@ private:
 	QRect m_grabRect;
 
 	QImage decorImage;
-	QImage resultImage;
+	QImage m_resultImage;
 	t_waf_info m_waf;
 
 private slots:

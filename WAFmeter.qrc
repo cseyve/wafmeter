@@ -20,5 +20,8 @@
         <file>icons/camera-square64.png</file>
         <file>icons/camera-square128.png</file>
         <file>icons/switch-cameras64.png</file>
+        <file>icons/tap-refresh.png</file>
+        <file>icons/continuous-refresh.png</file>
+        <file>icons/camera-square128-off.png</file>
     </qresource>
 </RCC>

@@ -32,7 +32,10 @@
 
 u8 g_debug_WAFMeter = 0;
 u8 g_mode_realtime = 0;
+u8 g_mode_MAF = 0;
 
+#define WAF_MSG(...) { fprintf(stderr, "WAFMeter::%s:%d\t", __func__,__LINE__); fprintf(stderr, __VA_ARGS__); }
+#define WAF_DEBUG(...) if(g_debug_WAFMeter) { WAF_MSG(__VA_ARGS__); }
 
 WAFMeter::WAFMeter()
 {
@@ -71,10 +74,8 @@ void WAFMeter::purgeScaled() {
 		}
 	}
 
-	if(g_debug_WAFMeter) {
-		fprintf(stderr, "WAFMeter::%s:%d : purging scaled images\n",
-				__func__, __LINE__);
-	}
+	WAF_DEBUG(" : purging scaled images\n");
+
 
 	m_process_counter = 0;
 
@@ -102,7 +103,7 @@ void WAFMeter::purgeScaled() {
 
 int WAFMeter::setScaledImage(IplImage * img) {
 	if(!img) {
-		fprintf(stderr, "WAFMeter::%s:%d : no img\n", __func__, __LINE__);
+		WAF_MSG(" : no img\n");
 
 		return -1;
 	}
@@ -112,7 +113,7 @@ int WAFMeter::setScaledImage(IplImage * img) {
 
 int WAFMeter::setUnscaledImage(IplImage * img) {
 	if(!img) {
-		fprintf(stderr, "WAFMeter::%s:%d : no img\n", __func__, __LINE__);
+		WAF_MSG(" : no img\n");
 
 		return -1;
 	}
@@ -126,7 +127,7 @@ int WAFMeter::setUnscaledImage(IplImage * img) {
 	}
 
 	if(!img->imageData) {
-		fprintf(stderr, "WAFMeter::%s:%d : not img->imageData image\n", __func__, __LINE__);
+		WAF_MSG(" : not img->imageData image\n");
 
 		return -1;
 	}
@@ -136,7 +137,7 @@ int WAFMeter::setUnscaledImage(IplImage * img) {
 	tmReleaseImage(&m_originalImage);
 	m_originalImage = tmAddBorder4x(img); // it will purge originalImage
 	if(g_debug_WAFMeter) {
-		fprintf(stderr, "WAFMeter::%s:%d : loaded %dx%d x %d\n", __func__, __LINE__,
+		WAF_MSG(" : loaded %dx%d x %d\n",
 			m_originalImage->width, m_originalImage->height,
 			m_originalImage->nChannels );
 	}
@@ -174,18 +175,20 @@ int WAFMeter::setUnscaledImage(IplImage * img) {
 	cvResize(m_originalImage, m_scaledImage);
 
 	if(g_debug_WAFMeter) {
-		fprintf(stderr, "WAFMeter::%s:%d : scaled to %dx%d x %d\n", __func__, __LINE__,
+		WAF_MSG(" : scaled to %dx%d x %d\n",
 				m_scaledImage->width, m_scaledImage->height,
 				m_scaledImage->nChannels);
 
-		fprintf(stderr, "\nWAFMeter::%s:%d : processHSV(m_scaledImage=%dx%d)\n", __func__, __LINE__,
+		fprintf(stderr, "\nWAFMeter::%s:%d : processHSV(m_scaledImage=%dx%d)\n",
 			m_scaledImage->width, m_scaledImage->height);fflush(stderr);
 	}
 
 	return processImage(m_scaledImage);
 }
 
-int WAFMeter::processImage(IplImage * scaledImage) {
+
+int WAFMeter::processImage(IplImage * scaledImage)
+{
 	if(!scaledImage) { return -1; }
 
 	if((m_scaledImage_allocated && m_scaledImage != scaledImage) // input image changed
@@ -224,7 +227,6 @@ int WAFMeter::processImage(IplImage * scaledImage) {
 	if(do_process_shape_now) {
 		processContour();
 	}
-
 
 	m_details.mu_color = m_waf_info.color_factor;
 
@@ -283,7 +285,7 @@ int WAFMeter::processCanny() {
 /* Contour/shape analysis */
 int WAFMeter::processContour() {
 	if(!m_scaledImage) {
-		fprintf(stderr, "WAFMeter::%s:%d : no scaled image\n", __func__, __LINE__);
+		WAF_MSG(" : no scaled image\n");
 
 		return -1;
 	}
@@ -624,7 +626,7 @@ float wafscale_H(int h) {
 			}
 
 		} else {
-			fprintf(stderr, "[wafmeter]::%s:%d : ERROR : cannot load huescale.png\n", __func__, __LINE__);
+			fprintf(stderr, "[wafmeter]::%s:%d : ERROR : cannot load huescale.png\n");
 		}
 	}
 
@@ -642,9 +644,10 @@ float wafscale_SV(int s, int v) {
 	return valS;
 }
 
-int WAFMeter::processHSV() {
+int WAFMeter::processHSV()
+{
 	if(!m_scaledImage) {
-		fprintf(stderr, "WAFMeter::%s:%d : no scaled image\n", __func__, __LINE__);
+		WAF_MSG(" : no scaled image\n");
 
 		return -1;
 	}
@@ -653,9 +656,15 @@ int WAFMeter::processHSV() {
 
 	// Change to HSV
 	if(m_scaledImage->nChannels < 3) {
-		// Clear histogram and return
-		fprintf(stderr, "WAFMeter::%s:%d : not coloured image : nChannels=%d\n", __func__, __LINE__,
+		WAF_MSG(" : not coloured image : nChannels=%d\n",
 			m_scaledImage->nChannels );
+
+		if(m_scaledImage->nChannels == 0)
+		{
+			return -1;
+		}
+		// Clear histogram and return
+
 		m_grayImage = m_scaledImage;
 		return 0;
 	}
@@ -684,17 +693,17 @@ The values are then converted to the destination data type:
 
         IplImage * rgbImage = m_scaledImage;
 	if(m_scaledImage->nChannels == 4) {
-            fprintf(stderr, "WAFMeter::%s:%d : convert to RGB\n", __func__, __LINE__);
+			WAF_MSG(" : convert to RGB\n");
 
             rgbImage = tmCreateImage(cvGetSize(m_scaledImage), IPL_DEPTH_8U, 3);
             // bad on macOSX:		cvCvtColor(m_scaledImage, bgrImage, CV_BGRA2BGR);
             cvCvtColor(m_scaledImage, rgbImage, CV_BGRA2BGR);
-            fprintf(stderr, "WAFMeter::%s:%d : converted to RGB\n", __func__, __LINE__);
+			WAF_MSG(" : converted to RGB\n");
         }
 
 	if(to_HLS) {
             if(g_debug_WAFMeter) {
-                fprintf(stderr, "WAFMeter::%s:%d : convert RGB %dx%dx%d-> HLS %dx%dx%d\n",
+				WAF_MSG(" : convert RGB %dx%dx%d-> HLS %dx%dx%d\n",
                         __func__, __LINE__,
                         rgbImage->width, rgbImage->height, rgbImage->nChannels,
                         hsvImage->width, hsvImage->height, hsvImage->nChannels
@@ -708,7 +717,7 @@ The values are then converted to the destination data type:
             }
 	} else {
             if(g_debug_WAFMeter) {
-                fprintf(stderr, "WAFMeter::%s:%d : convert RGB %dx%dx%d-> HSV %dx%dx%d\n",
+				WAF_MSG(" : convert RGB %dx%dx%d-> HSV %dx%dx%d\n",
                         __func__, __LINE__,
                         rgbImage->width, rgbImage->height, rgbImage->nChannels,
                         hsvImage->width, hsvImage->height, hsvImage->nChannels
@@ -737,7 +746,7 @@ The values are then converted to the destination data type:
 
         if(m_scaledImage->nChannels != 4) {
             if(g_debug_WAFMeter) {
-                fprintf(stderr, "WAFMeter::%s:%d : convert BGR %dx%dx%d-> gray %dx%dx%d\n",
+				WAF_MSG(" : convert BGR %dx%dx%d-> gray %dx%dx%d\n",
                         __func__, __LINE__,
                         m_scaledImage->width, m_scaledImage->height, m_scaledImage->nChannels,
                         m_grayImage->width, m_grayImage->height, m_grayImage->nChannels
@@ -746,7 +755,7 @@ The values are then converted to the destination data type:
             cvCvtColor(m_scaledImage, m_grayImage, CV_BGR2GRAY);
         } else {
             if(g_debug_WAFMeter) {
-                fprintf(stderr, "WAFMeter::%s:%d : convert BGRA %dx%dx%d-> gray %dx%dx%d\n",
+				WAF_MSG(" : convert BGRA %dx%dx%d-> gray %dx%dx%d\n",
                         __func__, __LINE__,
                         m_scaledImage->width, m_scaledImage->height, m_scaledImage->nChannels,
                         m_grayImage->width, m_grayImage->height, m_grayImage->nChannels
@@ -870,7 +879,7 @@ The values are then converted to the destination data type:
 		} else
 			cvZero(m_ColorHistoImage);
                 if(g_debug_WAFMeter) {
-                    fprintf(stderr, "WAFMeter::%s:%d : convert HSV2BGR %dx%dx%d-> gray %dx%dx%d\n",
+					WAF_MSG(" : convert HSV2BGR %dx%dx%d-> gray %dx%dx%d\n",
                             __func__, __LINE__,
                             hsvOutImage->width, hsvOutImage->height, hsvOutImage->nChannels,
                             m_ColorHistoImage->width, m_ColorHistoImage->height, m_ColorHistoImage->nChannels

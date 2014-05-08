@@ -400,7 +400,6 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 	if(getenv("HOME")) {
 		strcpy(home, getenv("HOME"));
 	}
-
 	m_pause_display = false;
 
 	m_path = QString(home);
@@ -417,12 +416,15 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 #endif
 
 #if defined(_ANDROID)
-	g_rotate = 90;
+	g_rotate = 90; // Camera is rotated with OpenCV when the smartphone is in portrait
 
-	ui->widget_grid_bottom->setMinimumHeight(128);
+	ui->widget_grid_bottom->setMinimumHeight(70);
 	ui->movieButton->hide();
 	ui->deskButton->hide();
 	ui->fileButton->hide();
+
+
+	ui->stackedWidget->setCurrentIndex(0);
 
 	ui->dirButton->hide();
 
@@ -457,6 +459,10 @@ WAFMainWindow::WAFMainWindow(QWidget *parent)
 		setWafHueScale(header);
 		cvReleaseImageHeader(&header);
 	}
+
+	// start recording thread
+	m_recordingThread.start();
+
 }
 
 WAFMainWindow::~WAFMainWindow()
@@ -645,8 +651,11 @@ void WAFMainWindow::on_continuousButton_toggled(bool checked)
 	// unlock display in any cases
 	m_pause_display = false;
 
-	m_pWAFMeterThread->setContinuous(m_continuous);
+	if(m_pWAFMeterThread) {
+		m_pWAFMeterThread->setContinuous(m_continuous);
+	}
 
+	// Grab in 10ms, so pretty soon
 	QTimer::singleShot(10, this, SLOT(slot_m_timer_timeout()));
 }
 
@@ -709,11 +718,13 @@ void WAFMainWindow::on_frontCamButton_toggled(bool )
 		startCamera();
 	}
 }
-void WAFMainWindow::on_dirButton_clicked()
+
+QDir getImageDir()
 {
 	QDir snapDir(QDir::homePath());
+
 #ifndef _QT5
-	QString writePath = tr("Desktop");
+	QString writePath = QObject::tr("Desktop");
 	// Before Qt5, no standard path have been described
 	snapDir.cd(writePath);
 #else
@@ -727,7 +738,7 @@ void WAFMainWindow::on_dirButton_clicked()
 #else
 	// Ref: http://qt-project.org/doc/qt-5/qstandardpaths.html
 	QStringList stdLocations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
-	msg = "pictures={";
+	QString msg = "pictures={";
 	for(int idx=0; idx<stdLocations.count(); ++idx)
 	{
 		msg += QString::number(idx) + "=" + stdLocations.at(idx) + ";";
@@ -735,21 +746,65 @@ void WAFMainWindow::on_dirButton_clicked()
 	msg += "}\n";
 
 	QString readPath = QStandardPaths::displayName(QStandardPaths::PicturesLocation);
-	msg += tr(" displayName(picturesLocation)=")+readPath;
+	msg += QObject::tr(" displayName(picturesLocation)=")+readPath;
 	QString writePath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
 	if(writePath.isEmpty())
 	{
-		msg += tr(" Could not read writable path for Pictures");
+		msg += QObject::tr(" Could not read writable path for Pictures");
 		writePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-		qDebug() <<  tr("No writable locations for saving images, save them in app directory ")
+		qDebug() <<  QObject::tr("No writable locations for saving images, save them in app directory ")
 							  << writePath;
-		msg += tr("=> use app path ") + writePath;
+		msg += QObject::tr("=> use app path ") + writePath;
 	}
 	snapDir.cd(writePath);
 #endif // ANDROID
 #endif // QT5
+
+	qDebug() << "Write path: " << writePath;
+
+	return snapDir;
+}
+
+void WAFMainWindow::on_dirButton_toggled(bool checked)
+{
+	// on desktop, open the directory fil file browser
+	// on android, open a gallery
+#if defined(_ANDROID)
+	if(checked)
+	{ // update images for gallery
+
+	}
+	ui->stackedWidget->setCurrentIndex( (checked ? 1 : 0) );
+#endif
+}
+
+void WAFMainWindow::on_dirButton_clicked()
+{
+	// on desktop, open the directory fil file browser
+	// on android, open a gallery
+#ifndef _ANDROID
+	QString writePath = getImageDir().absolutePath();
+
 	qDebug() << "Open directory:" << writePath;
 	QDesktopServices::openUrl(QUrl::fromLocalFile(writePath));
+#endif
+}
+
+/** @brief Get the image name */
+QString getImagePath(QDateTime dateTime, t_waf_info waf)
+{
+	// Assemblate file name
+	QString msg;
+
+	QDir snapDir = getImageDir();
+
+	QString wafStr;
+	wafStr.sprintf("%02d", (int)roundf(waf.waf_factor*100.f));
+	QString dateStr = dateTime.toString(QObject::tr("yyyy-MM-dd_hhmmss"));
+
+	QString filepath = snapDir.absoluteFilePath("WAF_" + dateStr + "waf=" + wafStr + "perc.png");
+
+	return filepath;
 }
 
 void WAFMainWindow::on_snapButton_clicked() {
@@ -759,84 +814,12 @@ void WAFMainWindow::on_snapButton_clicked() {
 				__func__, __LINE__);
 		return;
 	}
-	// Assemblate file name
-	QString msg;
-
-	QDir snapDir(QDir::homePath());
-#ifndef _QT5
-	// Before Qt5, no standard path have been described
-	snapDir.cd(tr("Desktop"));
-#else
-
-#ifdef _ANDROID
-	QString writePath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
-	if(snapDir.cd("/sdcard/")) {
-		if(!snapDir.exists("WAFmeter"))
-		{
-			snapDir.mkdir("WAFmeter");
-		}
-		if(snapDir.cd("WAFmeter"))
-		{
-			writePath = snapDir.currentPath();
-		}
-	}
-#else
-	// Ref: http://qt-project.org/doc/qt-5/qstandardpaths.html
-	QStringList stdLocations = QStandardPaths::standardLocations(QStandardPaths::PicturesLocation);
-	msg = "pictures={";
-	for(int idx=0; idx<stdLocations.count(); ++idx)
-	{
-		msg += QString::number(idx) + "=" + stdLocations.at(idx) + ";";
-	}
-	msg += "}\n";
-
-	QString readPath = QStandardPaths::displayName(QStandardPaths::PicturesLocation);
-	msg += tr(" displayName(picturesLocation)=")+readPath;
-	QString writePath = QStandardPaths::writableLocation(QStandardPaths::PicturesLocation);
-	if(writePath.isEmpty())
-	{
-		msg += tr(" Could not read writable path for Pictures");
-		writePath = QStandardPaths::writableLocation(QStandardPaths::DataLocation);
-		QMessageBox::critical(this, tr("No writable for images"),
-							  tr("No writable locations for saving images, save them in app directory ")
-							  + writePath);
-		msg += tr("=> use app path ") + writePath;
-	}
-	snapDir.cd(writePath);
-#endif
-
-	qDebug() << "writepath=" << writePath << "\n";
-	qDebug() << msg;
-
-
-#endif
-
-	QString wafStr;
-	wafStr.sprintf("%02d", (int)roundf(m_waf.waf_factor*100.f));
-	QString dateStr = QDateTime::currentDateTime().toString(tr("yyyy-MM-dd_hhmmss"));
-
-	QString filepath = snapDir.absoluteFilePath("WAF_" + dateStr + "waf=" + wafStr + "perc.png");
-
-	fprintf(stderr, "%s:%d : saved in '%s'", __func__, __LINE__,
-			filepath.toUtf8().data());
-
+	QString path = m_recordingThread.appendImage(m_waf, m_resultImage);
+	ui->debugLabel->setText(tr("Saved as ") + path);
 	ui->debugLabel->show();
-	if(!m_resultImage.save( filepath,
-					  "PNG"))
-	{
-		QMessageBox::critical(this,
-							  tr("Could not save file"),
-							  tr("ERROR: Could not save file ")+filepath
-							  );
 
-		msg += tr("ERROR: CANNOT save in ") + filepath;
-	}
-	else
-	{
-		msg += tr("Saved in ") + filepath;
-
-	}
-	ui->debugLabel->setText(msg);
+	// Hide in 1 sec
+	QTimer::singleShot(1000, ui->debugLabel, SLOT(hide()));
 }
 
 void WAFMainWindow::displayWAFMeasure(t_waf_info waf, IplImage * iplImage)
@@ -1148,5 +1131,96 @@ void WAFMeterThread::run()
 }
 
 
+
+
+
+/*********************************************************
+ * Background image recording thread
+ *********************************************************/
+RecordingThread::RecordingThread()
+	: QThread()
+{
+	m_run = true;
+	m_is_running = false;
+	start();
+}
+
+RecordingThread::~RecordingThread()
+{
+	/// @todo stop properly ?
+	askForStop();
+
+	// Then wait until done
+	int retry = 0;
+	while(m_is_running && retry < 5)
+	{
+		retry++;
+		sleep(1);
+	}
+
+}
+
+void RecordingThread::askForStop()
+{
+	m_run = false;
+}
+
+QString RecordingThread::appendImage(t_waf_info waf, QImage img)
+{
+	m_imageMutex.lock();
+
+	WAFRecordItem item;
+	item.dateTime = QDateTime::currentDateTime();
+	item.waf = waf;
+	item.img = img.copy();
+	item.path = getImagePath(item.dateTime, waf);
+
+	// Append image
+	m_saveList.append(item);
+	qDebug() << "Added 1 image => " << m_saveList.count() << "Images to save";
+	m_imageMutex.unlock();
+
+	m_waitCondition.wakeAll();
+	return item.path;
+}
+
+void RecordingThread::run()
+{
+	m_is_running = false;
+	while(m_run)
+	{
+		bool fired = m_waitCondition.wait(&m_waitMutex, 100);
+		if(!fired)
+		{
+			//qDebug() << "timeout";
+		} else {
+			m_imageMutex.lock();
+			fired = (m_saveList.count() > 0);
+			m_imageMutex.unlock();
+		}
+
+		if(fired) {
+			qDebug() << "Recording thread released with " << QString::number(m_saveList.count()) << "items";
+			m_imageMutex.lock();
+			QList<WAFRecordItem>::iterator it;
+			for(it = m_saveList.begin(); it != m_saveList.end(); it++)
+			{
+				WAFRecordItem item = (*it);
+				QImage img = item.img;
+				QString img_path = item.path;
+				qDebug() << "Saving image " << QString::number(img.width()) << "x" << QString::number(img.height())
+							<< " in " << img_path;
+				bool ok = img.save(img_path);
+				if(!ok)
+				{
+					qDebug() << "ERROR: cannot save image in " << img_path;
+				}
+			}
+			m_saveList.clear();
+			m_imageMutex.unlock();
+		}
+	}
+	fprintf(stderr, "Recording thread ended\n");
+}
 
 

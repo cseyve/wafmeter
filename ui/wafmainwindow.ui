@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>327</width>
-    <height>519</height>
+    <width>321</width>
+    <height>508</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -44,25 +44,62 @@
      <number>0</number>
     </property>
     <item>
-     <widget class="WAFLabel" name="imageLabel">
-      <property name="sizePolicy">
-       <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
-        <horstretch>0</horstretch>
-        <verstretch>0</verstretch>
-       </sizepolicy>
+     <widget class="QStackedWidget" name="stackedWidget">
+      <property name="currentIndex">
+       <number>0</number>
       </property>
-      <property name="styleSheet">
-       <string notr="true"/>
-      </property>
-      <property name="text">
-       <string/>
-      </property>
-      <property name="scaledContents">
-       <bool>true</bool>
-      </property>
-      <property name="alignment">
-       <set>Qt::AlignCenter</set>
-      </property>
+      <widget class="QWidget" name="page_live">
+       <layout class="QVBoxLayout" name="verticalLayout_2">
+        <property name="leftMargin">
+         <number>0</number>
+        </property>
+        <property name="topMargin">
+         <number>0</number>
+        </property>
+        <property name="rightMargin">
+         <number>0</number>
+        </property>
+        <property name="bottomMargin">
+         <number>0</number>
+        </property>
+        <item>
+         <widget class="WAFLabel" name="imageLabel">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
+          <property name="styleSheet">
+           <string notr="true"/>
+          </property>
+          <property name="text">
+           <string/>
+          </property>
+          <property name="pixmap">
+           <pixmap resource="../WAFmeter.qrc">:/icons/Interface-montage-splash.png</pixmap>
+          </property>
+          <property name="scaledContents">
+           <bool>true</bool>
+          </property>
+          <property name="alignment">
+           <set>Qt::AlignCenter</set>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
+      <widget class="QWidget" name="page_gallery">
+       <layout class="QGridLayout" name="gridLayout">
+        <item row="0" column="0">
+         <widget class="QLabel" name="label">
+          <property name="text">
+           <string>Gallery</string>
+          </property>
+         </widget>
+        </item>
+       </layout>
+      </widget>
      </widget>
     </item>
     <item>
@@ -99,7 +136,7 @@
        </size>
       </property>
       <property name="styleSheet">
-       <string notr="true">background-color: rgba(255, 255, 255, 0);</string>
+       <string notr="true"/>
       </property>
       <layout class="QGridLayout" name="gridLayout_2">
        <property name="leftMargin">
@@ -135,12 +172,6 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/switch-cameras64.png</normaloff>:/icons/switch-cameras64.png</iconset>
          </property>
-         <property name="iconSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
-         </property>
          <property name="checkable">
           <bool>true</bool>
          </property>
@@ -166,12 +197,6 @@
          <property name="icon">
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/video-display.png</normaloff>:/icons/video-display.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
          </property>
          <property name="flat">
           <bool>true</bool>
@@ -207,12 +232,6 @@
            <normaloff>:/icons/camera-square128-off.png</normaloff>
            <normalon>:/icons/camera-square128.png</normalon>:/icons/camera-square128-off.png</iconset>
          </property>
-         <property name="iconSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
-         </property>
          <property name="checkable">
           <bool>true</bool>
          </property>
@@ -239,12 +258,6 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/tap-refresh.png</normaloff>
            <normalon>:/icons/continuous-refresh.png</normalon>:/icons/tap-refresh.png</iconset>
-         </property>
-         <property name="iconSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
          </property>
          <property name="checkable">
           <bool>true</bool>
@@ -275,12 +288,6 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/media-playback-start.png</normaloff>:/icons/media-playback-start.png</iconset>
          </property>
-         <property name="iconSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
-         </property>
          <property name="checkable">
           <bool>true</bool>
          </property>
@@ -310,12 +317,6 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/image-jpeg.png</normaloff>:/icons/image-jpeg.png</iconset>
          </property>
-         <property name="iconSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
-         </property>
          <property name="shortcut">
           <string>Ctrl+O</string>
          </property>
@@ -342,12 +343,6 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/camera-photo.png</normaloff>:/icons/camera-photo.png</iconset>
          </property>
-         <property name="iconSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
-         </property>
          <property name="flat">
           <bool>true</bool>
          </property>
@@ -371,11 +366,8 @@
           <iconset resource="../WAFmeter.qrc">
            <normaloff>:/icons/folder-image.png</normaloff>:/icons/folder-image.png</iconset>
          </property>
-         <property name="iconSize">
-          <size>
-           <width>32</width>
-           <height>32</height>
-          </size>
+         <property name="checkable">
+          <bool>true</bool>
          </property>
          <property name="flat">
           <bool>true</bool>

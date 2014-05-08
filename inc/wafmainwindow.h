@@ -29,6 +29,10 @@
 #include <QMainWindow>
 #include <QThread>
 #include <QLabel>
+#include <QMutex>
+#include <QWaitCondition>
+#include <QDir>
+#include <QDateTime>
 
 #include "wafmeter.h"
 
@@ -39,6 +43,42 @@ namespace Ui
 {
 class WAFMainWindow;
 }
+
+
+typedef struct {
+	QDateTime dateTime;
+	t_waf_info waf;
+	QImage img;
+	QString path;
+} WAFRecordItem;
+
+/** @brief Background image recording thread
+  */
+class RecordingThread : public QThread
+{
+	Q_OBJECT
+
+public:
+	RecordingThread();
+	~RecordingThread();
+
+	void askForStop();
+	QString appendImage(t_waf_info waf, QImage img);
+
+private:
+	/** @brief Thread loop */
+	virtual void run();
+
+	bool m_run; ///< run command
+	bool m_is_running; ///< running status
+
+	QWaitCondition m_waitCondition;
+	QMutex m_waitMutex;
+
+	QMutex m_imageMutex;
+	QList<WAFRecordItem> m_saveList;
+};
+
 
 /** @brief Background acquisition and processing thread
   */
@@ -98,6 +138,7 @@ private:
 
 	IplImage * m_inputImage;
 	CvCapture * m_capture;
+
 };
 
 
@@ -203,6 +244,8 @@ private:
 	QImage m_resultImage;
 	t_waf_info m_waf;
 
+	RecordingThread m_recordingThread;
+
 private slots:
 	void on_fileButton_clicked();
 	void on_snapButton_clicked();
@@ -217,6 +260,15 @@ private slots:
 	void on_continuousButton_toggled(bool checked);
 	void on_frontCamButton_toggled(bool checked);
 	void on_dirButton_clicked();
+	void on_dirButton_toggled(bool checked);
 };
+
+/** @brief Get the image directory when the screenshots are saved */
+QDir getImageDir();
+
+/** @brief Get the image name */
+QString getImagePath(t_waf_info);
+
+
 
 #endif // WAFMAINWINDOW_H

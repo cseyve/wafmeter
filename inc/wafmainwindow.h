@@ -105,6 +105,9 @@ public:
 	/** @brief Return image associated with WAF measure */
 	IplImage * getInputImage() { return m_inputImage; };
 
+	/** @brief Return a copy of processed image associated with WAF measure */
+	IplImage * copyInputImage();
+
 	/** @brief Tell the thread to stop */
 	void stop();
 
@@ -137,7 +140,9 @@ private:
 	t_waf_info m_waf;
 
 	IplImage * m_inputImage;
+	IplImage * m_processedImage;	///< copy of processed image, protected by mutex
 	CvCapture * m_capture;
+	QMutex m_imageMutex;
 
 };
 

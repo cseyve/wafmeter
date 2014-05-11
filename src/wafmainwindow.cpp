@@ -304,9 +304,8 @@ void WAFLabel::paintEvent(QPaintEvent * )
 	float theta_min = 0.05;
 	float theta = (3.1415927-2*theta_min) * (1. - m_waf.waf_factor) + theta_min;
 
-	int radius_in = cr.width()/2;
+	int radius_in = cr.width()/2 - 10 /* thickness of dial border */;
 
-	float r = radius_in - 10;
 
 	QPoint dial_center(cr.width()/2,
 					   cr.height());
@@ -318,12 +317,13 @@ void WAFLabel::paintEvent(QPaintEvent * )
 	pen.setWidth(2);
 	pen.setCapStyle(Qt::RoundCap);
 
+	// DRAW MAIN RESULT AS THICK BLACK NEEDLE
 	// Draw main result first, to draw smaller dial over it
 	pen.setColor(qRgb(0,0,0));
 	pen.setColor(qRgba(10,10,10, 32));
 	pen.setWidth(5);
 	painter.setPen(pen);
-	r = radius_in;
+	float r = radius_in;
 	theta = (3.1415927-2*theta_min) * (1. - m_waf.waf_factor) + theta_min;
 	painter.drawLine(QPoint(dial_center.x(), dial_center.y()),
 					 QPoint(dial_center.x()+r * cos(theta), dial_center.y()-r*sin(theta)));
@@ -587,7 +587,7 @@ void WAFMainWindow::on_imageLabel_signalMousePressEvent(QMouseEvent * ev)
 	{
 		fprintf(stderr, "WAFMainWindow::%s:%d : ev=%p\n",
 				__func__, __LINE__, ev);
-		IplImage * input = m_pWAFMeterThread->getInputImage();
+		IplImage * input = m_pWAFMeterThread->copyInputImage();
 		computeWAF(input);
 		m_pause_display = true;
 		ui->tapLabel->setText(tr("Tap to go back to live"));
@@ -979,7 +979,8 @@ void WAFMainWindow::slot_m_timer_timeout()
 		}
 
 		// Display image
-		displayWAFMeasure(m_waf, m_pWAFMeterThread->getInputImage());
+		IplImage * processImage = m_pWAFMeterThread->copyInputImage();
+		displayWAFMeasure(m_waf, m_pWAFMeterThread->copyInputImage());
 
 		// if continuous, make a copy now
 		if(m_continuous) {
@@ -988,12 +989,12 @@ void WAFMainWindow::slot_m_timer_timeout()
 		}
 		if(g_debug_realtime) {
 			QString debugStr;
-			if(m_pWAFMeterThread->getInputImage())
+			if(processImage)
 			{
 				debugStr.sprintf("%dx%dx%d # %4d",
-								 m_pWAFMeterThread->getInputImage()->width,
-								 m_pWAFMeterThread->getInputImage()->height,
-								 m_pWAFMeterThread->getInputImage()->nChannels,
+								 processImage->width,
+								 processImage->height,
+								 processImage->nChannels,
 								 cur_iteration);
 			}
 			debugStr += ui->imageLabel->getProcStr();
@@ -1025,7 +1026,7 @@ void WAFMainWindow::slot_m_timer_timeout()
 WAFMeterThread::WAFMeterThread(WAFMeter * pWAFmeter) {
 	m_isRunning = m_run = false;
 	m_pWAFmeter = pWAFmeter;
-	m_inputImage = NULL;
+	m_inputImage = m_processedImage = NULL;
 	m_iteration = 0;
 	m_continuous = false;
 	m_period_ms = -1.f;// init <0 so we can set it up at first call
@@ -1035,6 +1036,7 @@ WAFMeterThread::WAFMeterThread(WAFMeter * pWAFmeter) {
 WAFMeterThread::~WAFMeterThread() {
 	stop();
 	tmReleaseImage(&m_inputImage);
+	tmReleaseImage(&m_processedImage);
 }
 
 void WAFMeterThread::setCapture(CvCapture * capture) {
@@ -1048,6 +1050,19 @@ void WAFMeterThread::stop() {
 		sleep(1);
 	}
 }
+
+/** Return a copy of processed image associated with WAF measure */
+IplImage * WAFMeterThread::copyInputImage()
+{
+	if(m_inputImage) {
+		m_imageMutex.lock();
+		cvCopy(m_inputImage, m_processedImage);
+		m_imageMutex.unlock();
+	}
+
+	return m_processedImage;
+}
+
 
 /* Thread loop */
 void WAFMeterThread::run()
@@ -1092,10 +1107,12 @@ void WAFMeterThread::run()
 							(m_inputImage->width != frame->width
 							 || m_inputImage->height != frame->height)) {
 						tmReleaseImage(&m_inputImage);
+						tmReleaseImage(&m_processedImage);
 					}
 
 					if(!m_inputImage) {
 						m_inputImage = tmCreateImage(cvGetSize(frame), IPL_DEPTH_8U, frame->nChannels);
+						m_processedImage = tmCreateImage(cvGetSize(frame), IPL_DEPTH_8U, frame->nChannels);
 						fprintf(stderr, "%s:%d : capture=%p "
 								"=> realloc img %dx%dx%d\n", __func__, __LINE__,
 								g_capture,
@@ -1114,7 +1131,11 @@ void WAFMeterThread::run()
 						}
 					}
 
+					m_imageMutex.lock();
 					cvCopy(frame, m_inputImage);
+					m_imageMutex.unlock();
+
+
 					tvprev = tvcur;
 				}
 			}

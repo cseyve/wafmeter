@@ -76,7 +76,9 @@ int delta_ms(struct timeval tv1, struct timeval tv2)
 	return dt;
 }
 
-
+#ifndef PI
+#define PI 3.1415927
+#endif
 
 WAFLabel::WAFLabel(QWidget *parent)
 	: QLabel(parent)
@@ -302,7 +304,7 @@ void WAFLabel::paintEvent(QPaintEvent * )
 	painter.setRenderHint(QPainter::Antialiasing, true);
 	// Margin on both sides of of the dial
 	float theta_min = 0.05;
-	float theta = (3.1415927-2*theta_min) * (1. - m_waf.waf_factor) + theta_min;
+	float theta = (PI - 2.f* theta_min) * (1. - m_waf.waf_factor) + theta_min;
 
 	int radius_in = cr.width()/2 - 10 /* thickness of dial border */;
 
@@ -323,8 +325,9 @@ void WAFLabel::paintEvent(QPaintEvent * )
 	pen.setColor(qRgba(10,10,10, 32));
 	pen.setWidth(5);
 	painter.setPen(pen);
+
 	float r = radius_in;
-	theta = (3.1415927-2*theta_min) * (1. - m_waf.waf_factor) + theta_min;
+	theta = (PI - 2.f*theta_min) * (1.f - m_waf.waf_factor) + theta_min;
 	painter.drawLine(QPoint(dial_center.x(), dial_center.y()),
 					 QPoint(dial_center.x()+r * cos(theta), dial_center.y()-r*sin(theta)));
 	r = radius_in-15;
@@ -334,7 +337,7 @@ void WAFLabel::paintEvent(QPaintEvent * )
 	pen.setWidth(3);
 	painter.setPen(pen);
 	r = radius_in-20;
-	theta = (3.1415927-2*theta_min) * (1. - m_waf.contour_factor) + theta_min;
+	theta = (PI - 2.f*theta_min) * (1.f - m_waf.contour_factor) + theta_min;
 	painter.drawLine(QPoint(dial_center.x(),
 							dial_center.y()),
 					 QPoint(dial_center.x() +r * cos(theta),
@@ -343,7 +346,7 @@ void WAFLabel::paintEvent(QPaintEvent * )
 	// draw color with green
 	pen.setColor(qRgb(127,255,0));
 	r = radius_in-20;
-	theta = (3.1415927-2*theta_min) * (1. - m_waf.color_factor) + theta_min;
+	theta = (PI - 2.f*theta_min) * (1.f - m_waf.color_factor) + theta_min;
 	pen.setWidth(3);
 	painter.setPen(pen);
 	painter.drawLine(QPoint(dial_center.x(),
